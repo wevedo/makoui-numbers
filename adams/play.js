@@ -4,18 +4,28 @@ const ytSearch = require("yt-search");
 
 // Shared API configurations
 const apiKey = 'gifted_api_6kuv56877d';
+
 const audioApis = [
-    `https://api.giftedtech.my.id/api/download/ytmusic?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
+    
     `https://apis.davidcyriltech.my.id/download/ytmp3?url=`,
-    `https://apis.davidcyriltech.my.id/youtube/mp3?url=`
+    `https://api.giftedtech.web.id/api/download/ytaudio?apikey=${apiKey}&format=128kbps&url=`,
+    
+    `https://apis.davidcyriltech.my.id/youtube/mp3?url=`,
+    `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/yta?apikey=${apiKey}&url=`
 ];
 
 const videoApis = [
-    `https://api.giftedtech.my.id/api/download/ytmp4?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
+    
     `https://apis.davidcyriltech.my.id/download/ytmp4?url=`,
-    `https://api.giftedtech.my.id/api/download/ytv?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytvid?apikey=${apiKey}&format=360p&url=`,
+    
     `https://apis.davidcyriltech.my.id/youtube/mp4?url=`,
-    `https://api.giftedtech.my.id/api/download/ytvideo?apikey=${apiKey}&url=`
+    `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`
 ];
 
 // Store active download sessions
@@ -177,8 +187,17 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
         for (const api of apis) {
             try {
                 const response = await axios.get(`${api}${encodedUrl}`);
-                if (response.data?.result?.download_url || response.data?.url) {
-                    downloadUrl = response.data.result?.download_url || response.data.url;
+           if (
+    response.data?.result?.download_url || 
+    response.data?.url || 
+    response.data?.audio_url || 
+    response.data?.video_url
+) {
+    downloadUrl = 
+        response.data.result?.download_url || 
+        response.data.url || 
+        response.data.audio_url || 
+        response.data.video_url;
                     break;
                 }
             } catch (e) {
