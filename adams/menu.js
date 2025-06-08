@@ -34,6 +34,9 @@ const categories = {
     "🔞 ADULT MENU": ["XVIDEO"]
 };
 
+// Navigation state storage
+const navigationState = new Map();
+
 // GitHub repo stats
 const fetchGitHubStats = async () => {
     try {
@@ -105,31 +108,29 @@ adams({ nomCom: "menu", categorie: "General" }, async (dest, zk, commandeOptions
         },
     };
 
-    // Create numbered menu options
+    // Create numbered menu options (REMOVED INBOX MENU AND GROUP MENU)
     const menuOptions = `
 *📋 MENU OPTIONS - Reply with number:*
 
-*1.* 📋 INBOX MENU
-*2.* 🗂️ GROUP MENU  
-*3.* 🌐 OUR WEB
-*4.* 📺 YOGO APP
-*5.* 🎵 RANDOM SONG
-*6.* 📢 UPDATES
+*1.* 🌐 OUR WEB
+*2.* 📺 YOGO APP
+*3.* 🎵 RANDOM SONG
+*4.* 📢 UPDATES
 
 *📂 COMMAND CATEGORIES - Reply with number:*
 
-*7.* 🤖 AI MENU
-*8.* ⚽ SPORTS MENU
-*9.* 📥 DOWNLOAD MENU
-*10.* 🛠️ HEROKU MENU
-*11.* 💬 CONVERSATION MENU
-*12.* 😂 FUN MENU
-*13.* 🌍 GENERAL MENU
-*14.* 👨‍👨‍👦‍👦 GROUP MENU
-*15.* 💻 BOT_INFO MENU
-*16.* 🔞 ADULT MENU
+*5.* 🤖 AI MENU
+*6.* ⚽ SPORTS MENU
+*7.* 📥 DOWNLOAD MENU
+*8.* 🛠️ HEROKU MENU
+*9.* 💬 CONVERSATION MENU
+*10.* 😂 FUN MENU
+*11.* 🌍 GENERAL MENU
+*12.* 👨‍👨‍👦‍👦 GROUP MENU
+*13.* 💻 BOT_INFO MENU
+*14.* 🔞 ADULT MENU
 
-_Reply with any number above to access that menu section_`;
+_Reply with any number above to access that section_`;
 
     // Send main menu
     const sentMessage = await zk.sendMessage(dest, {
@@ -156,18 +157,74 @@ ${footer}`,
         contextInfo: contextInfo
     }, { quoted: contactMsg });
 
+    // Initialize navigation state for this user
+    navigationState.set(sender, { 
+        currentCategory: -1, 
+        messageId: sentMessage.key.id,
+        isInCategory: false 
+    });
+
     // Handle replies to this message
     const cleanup = () => {
         zk.ev.off("messages.upsert", handleReply);
+        navigationState.delete(sender);
+    };
+
+    const showCategoryCommands = async (categoryIndex, dest, message, isNavigation = false) => {
+        const categoryNames = Object.keys(categories);
+        const categoryName = categoryNames[categoryIndex];
+        
+        if (!categoryName) return false;
+
+        const catKeys = categories[categoryName] || [];
+        let commands = [];
+        catKeys.forEach(key => {
+            if (commandList[key]) {
+                commands = commands.concat(commandList[key]);
+            }
+        });
+
+        // Create navigation info
+        const totalCategories = categoryNames.length;
+        const navigationInfo = `
+*🧭 NAVIGATION:*
+*0.* 🔙 BACK TO MAIN MENU
+*98.* ⬅️ PREVIOUS CATEGORY ${categoryIndex > 0 ? `(${categoryNames[categoryIndex - 1]})` : '(Last)'}
+*99.* ➡️ NEXT CATEGORY ${categoryIndex < totalCategories - 1 ? `(${categoryNames[categoryIndex + 1]})` : '(First)'}
+
+_Category ${categoryIndex + 1} of ${totalCategories}_`;
+
+        if (commands.length > 0) {
+            await zk.sendMessage(dest, {
+                text: `📋 *${categoryName} COMMANDS*\n\n${commands.join('\n')}\n\n${navigationInfo}\n\n${footer}`,
+                contextInfo: contextInfo
+            }, { quoted: message });
+        } else {
+            await zk.sendMessage(dest, {
+                text: `❌ No commands found for ${categoryName}\n\n${navigationInfo}\n\n${footer}`,
+                contextInfo: contextInfo
+            }, { quoted: message });
+        }
+
+        // Update navigation state
+        const userState = navigationState.get(sender) || {};
+        userState.currentCategory = categoryIndex;
+        userState.isInCategory = true;
+        navigationState.set(sender, userState);
+
+        return true;
     };
 
     const handleReply = async (update) => {
         const message = update.messages[0];
         if (!message?.message) return;
 
-        // Check if this is a reply to our menu message
+        // Check if this is a reply to our menu message or if user is in navigation
+        const userState = navigationState.get(sender);
         const isReply = message.message.extendedTextMessage?.contextInfo?.stanzaId === sentMessage.key.id;
-        if (!isReply) return;
+        const isInCategory = userState?.isInCategory;
+        
+        if (!isReply && !isInCategory) return;
 
         const responseText = message.message.extendedTextMessage?.text?.trim() || 
                            message.message.conversation?.trim();
@@ -178,62 +235,63 @@ ${footer}`,
         const dest = message.key.remoteJid;
 
         try {
+            // Handle navigation commands
+            if (selectedIndex === 0) {
+                // Back to main menu
+                const userState = navigationState.get(sender) || {};
+                userState.isInCategory = false;
+                userState.currentCategory = -1;
+                navigationState.set(sender, userState);
+
+                await zk.sendMessage(dest, {
+                    image: { url: randomImage() },
+                    caption: `🔙 *BACK TO MAIN MENU*\n\n${menuOptions}\n\n${footer}`,
+                    contextInfo: contextInfo
+                }, { quoted: message });
+                return;
+            }
+
+            if (selectedIndex === 98) {
+                // Previous category
+                const userState = navigationState.get(sender) || {};
+                const currentIndex = userState.currentCategory || 0;
+                const categoryNames = Object.keys(categories);
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : categoryNames.length - 1;
+                
+                await showCategoryCommands(prevIndex, dest, message, true);
+                return;
+            }
+
+            if (selectedIndex === 99) {
+                // Next category
+                const userState = navigationState.get(sender) || {};
+                const currentIndex = userState.currentCategory || 0;
+                const categoryNames = Object.keys(categories);
+                const nextIndex = currentIndex < categoryNames.length - 1 ? currentIndex + 1 : 0;
+                
+                await showCategoryCommands(nextIndex, dest, message, true);
+                return;
+            }
+
+            // Handle main menu options
             switch (selectedIndex) {
                 case 1:
-                    // INBOX MENU - Show all commands
-                    const categoryKeys = Object.keys(categories);
-                    let allMenuText = "*📋 INBOX MENU - All Commands*\n\n";
-                    
-                    categoryKeys.forEach((catName, index) => {
-                        allMenuText += `*${index + 1}. ${catName}*\n`;
-                        const catKeys = categories[catName] || [];
-                        catKeys.forEach(key => {
-                            if (commandList[key]) {
-                                commandList[key].forEach(cmd => {
-                                    allMenuText += `   ${cmd}\n`;
-                                });
-                            }
-                        });
-                        allMenuText += "\n";
-                    });
-
+                    // WEB APP
                     await zk.sendMessage(dest, {
-                        text: allMenuText + footer,
+                        text: "🌐 *BWM XMD WEB APP*\n\nVisit our official website here:\nwww.ibrahimadams.site\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
                         contextInfo: contextInfo
                     }, { quoted: message });
                     break;
 
                 case 2:
-                    // GROUP MENU - Show category selection
-                    let groupMenuText = "*🗂️ GROUP MENU - Select Category*\n\n";
-                    Object.keys(categories).forEach((catName, index) => {
-                        groupMenuText += `*${index + 17}.* ${catName}\n`;
-                    });
-                    
-                    groupMenuText += "\n_Reply with the number to see commands in that category_\n\n";
+                    // YOGO APP
                     await zk.sendMessage(dest, {
-                        text: groupMenuText + footer,
+                        text: "📺 *BWM XMD YOUTUBE*\n\nCheck out our yugo app:\nbwm-xmd-go.vercel.app\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
                         contextInfo: contextInfo
                     }, { quoted: message });
                     break;
 
                 case 3:
-                    // WEB APP
-                    await zk.sendMessage(dest, {
-                        text: "🌐 *BWM XMD WEB APP*\n\nVisit our official website here:\nwww.ibrahimadams.site\n\n" + footer,
-                        contextInfo: contextInfo
-                    }, { quoted: message });
-                    break;
-
-                case 4:
-                    // YOGO APP
-                    await zk.sendMessage(dest, {
-                        text: "📺 *BWM XMD YOUTUBE*\n\nCheck out our yugo app:\nbwm-xmd-go.vercel.app\n\n" + footer,
-                        contextInfo: contextInfo
-                    }, { quoted: message });
-                    break;
-
-                case 5:
                     // RANDOM SONG
                     const randomAudio = getRandomAudio();
                     await zk.sendMessage(dest, {
@@ -242,16 +300,23 @@ ${footer}`,
                         ptt: true,
                         contextInfo: contextInfo
                     }, { quoted: message });
-                    break;
-
-                case 6:
-                    // UPDATES
+                    
                     await zk.sendMessage(dest, {
-                        text: "📢 *BWM XMD UPDATES CHANNEL*\n\nJoin our official updates channel:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\n" + footer,
+                        text: "🎵 *RANDOM SONG SENT*\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
                         contextInfo: contextInfo
                     }, { quoted: message });
                     break;
 
+                case 4:
+                    // UPDATES
+                    await zk.sendMessage(dest, {
+                        text: "📢 *BWM XMD UPDATES CHANNEL*\n\nJoin our official updates channel:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
+                        contextInfo: contextInfo
+                    }, { quoted: message });
+                    break;
+
+                case 5:
+                case 6:
                 case 7:
                 case 8:
                 case 9:
@@ -260,92 +325,30 @@ ${footer}`,
                 case 12:
                 case 13:
                 case 14:
-                case 15:
-                case 16:
-                    // Category menus (7-16)
-                    const catIndex = selectedIndex - 7;
-                    const categoryNames = Object.keys(categories);
-                    const categoryName = categoryNames[catIndex];
-                    
-                    if (categoryName) {
-                        const catKeys = categories[categoryName] || [];
-                        let commands = [];
-                        catKeys.forEach(key => {
-                            if (commandList[key]) {
-                                commands = commands.concat(commandList[key]);
-                            }
-                        });
-
-                        if (commands.length > 0) {
-                            await zk.sendMessage(dest, {
-                                text: `📋 *${categoryName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`,
-                                contextInfo: contextInfo
-                            }, { quoted: message });
-                        } else {
-                            await zk.sendMessage(dest, {
-                                text: `❌ No commands found for ${categoryName}\n\n${footer}`,
-                                contextInfo: contextInfo
-                            }, { quoted: message });
-                        }
-                    }
+                    // Category menus (5-14)
+                    const catIndex = selectedIndex - 5;
+                    await showCategoryCommands(catIndex, dest, message);
                     break;
 
                 default:
-                    // Handle numbers 17+ for group menu categories
-                    if (selectedIndex >= 17) {
-                        const groupCatIndex = selectedIndex - 17;
-                        const categoryNames = Object.keys(categories);
-                        const categoryName = categoryNames[groupCatIndex];
-                        
-                        if (categoryName) {
-                            const catKeys = categories[categoryName] || [];
-                            let commands = [];
-                            catKeys.forEach(key => {
-                                if (commandList[key]) {
-                                    commands = commands.concat(commandList[key]);
-                                }
-                            });
-
-                            if (commands.length > 0) {
-                                await zk.sendMessage(dest, {
-                                    text: `📋 *${categoryName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`,
-                                    contextInfo: contextInfo
-                                }, { quoted: message });
-                            } else {
-                                await zk.sendMessage(dest, {
-                                    text: `❌ No commands found for ${categoryName}\n\n${footer}`,
-                                    contextInfo: contextInfo
-                                }, { quoted: message });
-                            }
-                        } else {
-                            await zk.sendMessage(dest, {
-                                text: "*❌ Invalid number. Please select a valid option.*\n\n" + footer,
-                                contextInfo: contextInfo
-                            }, { quoted: message });
-                        }
-                    } else {
-                        await zk.sendMessage(dest, {
-                            text: "*❌ Invalid number. Please select a valid option.*\n\n" + footer,
-                            contextInfo: contextInfo
-                        }, { quoted: message });
-                    }
+                    await zk.sendMessage(dest, {
+                        text: "*❌ Invalid number. Please select a valid option.*\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
+                        contextInfo: contextInfo
+                    }, { quoted: message });
                     break;
             }
         } catch (error) {
             console.error("Menu reply error:", error);
             await zk.sendMessage(dest, {
-                text: "*❌ An error occurred. Please try again.*\n\n" + footer,
+                text: "*❌ An error occurred. Please try again.*\n\n*0.* 🔙 BACK TO MAIN MENU\n\n" + footer,
                 contextInfo: contextInfo
             }, { quoted: message });
         }
-
-        // Clean up after 5 minutes
-        setTimeout(cleanup, 300000);
     };
 
     // Listen for replies
     zk.ev.on("messages.upsert", handleReply);
 
-    // Auto cleanup after 5 minutes
-    setTimeout(cleanup, 300000);
+    // Auto cleanup after 10 minutes
+    setTimeout(cleanup, 600000);
 });
