@@ -94,7 +94,7 @@ commands.forEach((command) => {
         ) {
           if (responseText === "1") {
             await zk.sendMessage(dest, { text: "🌍 Opening GitHub Repository..." });
-            await zk.sendMessage(dest, { text: `github.com/${repository}` });
+            await zk.sendMessage(dest, { text: `Numbers reply repo\ngithub.com/${repository}\n\nButtons repo\ngithub.com/ibrahimadams254/BWM-XMD-QUANTUM-BUTTON` });
           } else if (responseText === "2") {
             await zk.sendMessage(dest, { text: "📢 Opening WhatsApp Channel..." });
             await zk.sendMessage(dest, { text: "whatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y" });
