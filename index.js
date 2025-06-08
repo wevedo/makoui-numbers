@@ -1552,7 +1552,7 @@ return; // BLOCK EXECUTION
 │└────────┈ ⳹  
 │ ✅ Prefix: [ ${conf.PREFIX} ] 
 │ ☣️ Mode: *${md}*
-│ 🔄 Auto-fix: *ONLINE*
+│ 🔄 Auto-fix: *online*
 └────────────┈ ⳹  
 │ *ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ, ᴠɪsɪᴛ*
 │ https://business.bwmxmd.online
