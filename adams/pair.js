@@ -52,7 +52,7 @@ async function handleCodeRequest(dest, zk, commandeOptions, apiUrl) {
 
             // SECOND MESSAGE: Interactive buttons
             const buttonMessage = {
-                text: '*What would you like to do next?*',
+                text: '*Link your code now?*',
                 footer: "BWM XMD Code Generator",
                 buttons: [
                     {
