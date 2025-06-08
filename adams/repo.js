@@ -26,7 +26,7 @@ const fetchRepoDetails = async () => {
   }
 };
 
-const commands = ["git2", "repo2", "script2", "sc2"];
+const commands = ["git", "repo", "script", "sc"];
 
 commands.forEach((command) => {
   adams({ nomCom: command, categorie: "🚀 GitHub" }, async (dest, zk, commandeOptions) => {
