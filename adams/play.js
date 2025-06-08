@@ -106,21 +106,21 @@ _This menu stays active - you can use it multiple times_`;
                         case 1:
                             // Download Audio
                             await zk.sendMessage(session.dest, { 
-                                text: `🔄 Processing audio download for: *${session.videoTitle}*`,
+                                text: "🔄 Processing your request...",
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('audio', session.videoUrl, session.dest, zk, message, session);
+                            await handleDownload('audio', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 2:
                             // Download Video
                             await zk.sendMessage(session.dest, { 
-                                text: `🔄 Processing video download for: *${session.videoTitle}*`,
+                                text: "🔄 Processing your request...",
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('video', session.videoUrl, session.dest, zk, message, session);
+                            await handleDownload('video', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 3:
@@ -165,7 +165,8 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-async function handleDownload(type, videoUrl, dest, zk, originalMsg, session) {
+// EXACT SAME DOWNLOAD FUNCTION FROM YOUR WORKING BUTTON CODE
+async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
         const encodedUrl = encodeURIComponent(videoUrl);
@@ -175,7 +176,7 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, session) {
         // Try each API until successful
         for (const api of apis) {
             try {
-                const response = await axios.get(`${api}${encodedUrl}`, { timeout: 15000 });
+                const response = await axios.get(`${api}${encodedUrl}`);
                 if (response.data?.result?.download_url || response.data?.url) {
                     downloadUrl = response.data.result?.download_url || response.data.url;
                     break;
@@ -187,50 +188,43 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, session) {
 
         if (!downloadUrl) {
             return await zk.sendMessage(dest, { 
-                text: `❌ Failed to download ${type}. Try again later.\n\n_You can still use the menu above to try other options._` 
+                text: `❌ Failed to download ${type}. Try again later.` 
             }, { quoted: originalMsg });
         }
 
-        // Send the downloaded file
+        // Send the downloaded file - EXACT SAME AS YOUR BUTTON CODE
         if (type === 'audio') {
-            const audioResponse = await axios.get(downloadUrl, { 
-                responseType: 'arraybuffer',
-                timeout: 30000 
-            });
+            const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const audioBuffer = Buffer.from(audioResponse.data, 'binary');
             
             await zk.sendMessage(dest, {
                 audio: audioBuffer,
                 mimetype: 'audio/mpeg',
-                caption: `🎵 *${session.videoTitle}*\n\n_Menu above is still active for more downloads_`,
                 contextInfo: {
                     externalAdReply: {
-                        title: session.videoTitle,
-                        body: "BWM XMD Audio Download",
+                        title: "Your Audio Download",
+                        body: "BWM XMD Downloader",
                         mediaType: 2,
-                        thumbnailUrl: session.videoThumbnail,
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
                         mediaUrl: downloadUrl,
                         sourceUrl: downloadUrl
                     }
                 }
             }, { quoted: originalMsg });
         } else {
-            const videoResponse = await axios.get(downloadUrl, { 
-                responseType: 'arraybuffer',
-                timeout: 60000 
-            });
+            const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
             await zk.sendMessage(dest, {
                 video: videoBuffer,
                 mimetype: 'video/mp4',
-                caption: `🎥 *${session.videoTitle}*\n\n_Menu above is still active for more downloads_`,
+                caption: "Here's your video download",
                 contextInfo: {
                     externalAdReply: {
-                        title: session.videoTitle,
-                        body: "BWM XMD Video Download",
+                        title: "Your Video Download",
+                        body: "BWM XMD Downloader",
                         mediaType: 2,
-                        thumbnailUrl: session.videoThumbnail,
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
                         mediaUrl: downloadUrl,
                         sourceUrl: downloadUrl
                     }
@@ -238,15 +232,10 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, session) {
             }, { quoted: originalMsg });
         }
 
-        // Success message
-        await zk.sendMessage(dest, {
-            text: `✅ ${type === 'audio' ? 'Audio' : 'Video'} download completed!\n\n_The menu above is still active - you can download the other format or try different options._`
-        }, { quoted: originalMsg });
-
     } catch (error) {
         console.error("Download error:", error);
         await zk.sendMessage(dest, { 
-            text: `❌ Error during ${type} download.\n\n_You can try again using the menu above._` 
+            text: `❌ Error during ${type} download.` 
         }, { quoted: originalMsg });
     }
 }
