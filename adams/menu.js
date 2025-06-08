@@ -23,15 +23,15 @@ const footer = `\n\n©Sir Ibrahim Adams\n\n╭━========================\n┃  
 // Command categories
 const categories = {
     "🤖 AI MENU": ["AI", "TTS", "NEWS"],
-        "⚽ SPORTS MENU": ["FOOTBALL", "GAMES"],
-        "📥 DOWNLOAD MENU": ["NEWS", "SEARCH", "IMAGES", "DOWNLOAD"],
-        "🛠️ HEROKU MENU": ["CONTROL", "STICKCMD", "TOOLS"],
-        "💬 CONVERSATION MENU": ["CONVERSION", "LOGO", "MEDIA", "WEEB", "SCREENSHOTS", "IMG", "AUDIO-EDIT", "MPESA"],
-        "😂 FUN MENU": ["HENTAI", "FUN", "REACTION"],
-        "🌍 GENERAL MENU": ["GENERAL", "MODS", "UTILITY", "MEDIA", "TRADE"],
-        "👨‍👨‍👦‍👦 GROUP MENU": ["GROUP"],
-        "💻 BOT_INFO MENU": ["GITHUB", "USER", "PAIR"],
-        "🔞 ADULT MENU": ["XVIDEO"]
+    "⚽ SPORTS MENU": ["FOOTBALL", "GAMES"],
+    "📥 DOWNLOAD MENU": ["NEWS", "SEARCH", "IMAGES", "DOWNLOAD"],
+    "🛠️ HEROKU MENU": ["CONTROL", "STICKCMD", "TOOLS"],
+    "💬 CONVERSATION MENU": ["CONVERSION", "LOGO", "MEDIA", "WEEB", "SCREENSHOTS", "IMG", "AUDIO-EDIT", "MPESA"],
+    "😂 FUN MENU": ["HENTAI", "FUN", "REACTION"],
+    "🌍 GENERAL MENU": ["GENERAL", "MODS", "UTILITY", "MEDIA", "TRADE"],
+    "👨‍👨‍👦‍👦 GROUP MENU": ["GROUP"],
+    "💻 BOT_INFO MENU": ["GITHUB", "USER", "PAIR"],
+    "🔞 ADULT MENU": ["XVIDEO"]
 };
 
 // GitHub repo stats
@@ -105,6 +105,32 @@ adams({ nomCom: "menu", categorie: "General" }, async (dest, zk, commandeOptions
         },
     };
 
+    // Create numbered menu options
+    const menuOptions = `
+*📋 MENU OPTIONS - Reply with number:*
+
+*1.* 📋 INBOX MENU
+*2.* 🗂️ GROUP MENU  
+*3.* 🌐 OUR WEB
+*4.* 📺 YOGO APP
+*5.* 🎵 RANDOM SONG
+*6.* 📢 UPDATES
+
+*📂 COMMAND CATEGORIES - Reply with number:*
+
+*7.* 🤖 AI MENU
+*8.* ⚽ SPORTS MENU
+*9.* 📥 DOWNLOAD MENU
+*10.* 🛠️ HEROKU MENU
+*11.* 💬 CONVERSATION MENU
+*12.* 😂 FUN MENU
+*13.* 🌍 GENERAL MENU
+*14.* 👨‍👨‍👦‍👦 GROUP MENU
+*15.* 💻 BOT_INFO MENU
+*16.* 🔞 ADULT MENU
+
+_Reply with any number above to access that menu section_`;
+
     // Send main menu
     await zk.sendMessage(dest, {
         image: { url: randomImage() },
@@ -124,180 +150,150 @@ adams({ nomCom: "menu", categorie: "General" }, async (dest, zk, commandeOptions
 
 ${readMore}
 
-📜 *Tap one of the buttons below*
+${menuOptions}
 
 ${footer}`,
-        footer: "BWM XMD - Quantum Version",
-        buttons: [
-            { buttonId: 'list_menu', buttonText: { displayText: '📋 INBOX MENU' }, type: 1 },
-            { buttonId: 'button_menu', buttonText: { displayText: '🗂️ GROUP MENU' }, type: 1 },
-            { buttonId: 'web_app', buttonText: { displayText: '🌐 OUR WEB' }, type: 1 },
-            { buttonId: 'youtube', buttonText: { displayText: '📺 YOGO APP' }, type: 1 },
-            { buttonId: 'random_song', buttonText: { displayText: '🎵 RANDOM SONG' }, type: 1 },
-            { buttonId: 'updates', buttonText: { displayText: '📢 UPDATES' }, type: 1 }
-        ],
         contextInfo: contextInfo
     }, { quoted: contactMsg });
-
-    // Handle button clicks
-    const handler = async (update) => {
-        const message = update.messages[0];
-        if (!message || !message.key || message.key.remoteJid !== dest) return;
-
-        try {
-            // Handle button response
-            if (message.message?.buttonsResponseMessage) {
-                const buttonId = message.message.buttonsResponseMessage.selectedButtonId;
-
-                if (buttonId === 'list_menu') {
-                    // Send list menu
-                    const sections = [{
-                        title: "📋 Command Categories",
-                        rows: Object.keys(categories).map((cat, i) => ({
-                            title: cat,
-                            rowId: `cat_${i}`,
-                            description: `View ${cat} commands`
-                        }))
-                    }];
-
-                    await zk.sendMessage(dest, {
-                        text: "📋 *BWM XMD COMMAND MENU*",
-                        footer: "Select a category",
-                        title: "🌎 QUANTUM TECH 🌎",
-                        buttonText: "View Categories",
-                        sections,
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId === 'button_menu') {
-                    // Send button menu
-                    const buttons = Object.keys(categories).map(cat => ({
-                        buttonId: `cat_${cat}`,
-                        buttonText: { displayText: cat },
-                        type: 1
-                    }));
-
-                    // Add back button
-                    buttons.push({
-                        buttonId: 'main_menu',
-                        buttonText: { displayText: '🔙 MAIN MENU' },
-                        type: 1
-                    });
-
-                    await zk.sendMessage(dest, {
-                        text: "🗂️ *BWM XMD BUTTON MENU*",
-                        footer: "Select a category",
-                        buttons,
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId === 'web_app') {
-                    // Send web app link
-                    await zk.sendMessage(dest, {
-                        text: "🌐 *BWM XMD WEB APP*\n\nVisit our official website here:\nwww.ibrahimadams.site",
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId === 'youtube') {
-                    // Send YouTube link
-                    await zk.sendMessage(dest, {
-                        text: "📺 *BWM XMD YOUTUBE*\n\nCheck out our yugo app:\nbwm-xmd-go.vercel.app",
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId === 'random_song') {
-                    // Send random song
-                    const randomAudio = getRandomAudio();
-                    await zk.sendMessage(dest, {
-                        audio: { url: `${githubRawBaseUrl}/${randomAudio}` },
-                        mimetype: 'audio/mp4',
-                        ptt: true,
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId === 'updates') {
-                    // Send updates channel link
-                    await zk.sendMessage(dest, {
-                        text: "📢 *BWM XMD UPDATES CHANNEL*\n\nJoin our official updates channel:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y",
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-                else if (buttonId.startsWith('cat_')) {
-                    // Show commands for selected category
-                    const catName = buttonId.replace('cat_', '');
-                    const catKeys = categories[catName] || [];
-                    
-                    let commands = [];
-                    catKeys.forEach(key => {
-                        if (commandList[key]) {
-                            commands = commands.concat(commandList[key]);
-                        }
-                    });
-
-                    if (commands.length > 0) {
-                        await zk.sendMessage(dest, {
-                            text: `📋 *${catName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`,
-                            contextInfo: contextInfo
-                        }, { quoted: contactMsg });
-                    } else {
-                        await repondre(`❌ No commands found for ${catName}`);
-                    }
-                }
-                else if (buttonId === 'main_menu') {
-                    // Resend main menu
-                    await zk.sendMessage(dest, {
-                        image: { url: randomImage() },
-                        caption: `Returning to main menu...\n\n${footer}`,
-                        footer: "BWM XMD - Quantum Version",
-                        buttons: [
-                            { buttonId: 'list_menu', buttonText: { displayText: '📋 INBOX MENU' }, type: 1 },
-                            { buttonId: 'button_menu', buttonText: { displayText: '🗂️ GROUP MENU' }, type: 1 },
-                            { buttonId: 'web_app', buttonText: { displayText: '🌐 OUR WEB' }, type: 1 },
-                            { buttonId: 'youtube', buttonText: { displayText: '📺 YOGO APP' }, type: 1 },
-                            { buttonId: 'random_song', buttonText: { displayText: '🎵 RANDOM SONG' }, type: 1 },
-                            { buttonId: 'updates', buttonText: { displayText: '📢 UPDATES' }, type: 1 }
-                        ],
-                        contextInfo: contextInfo
-                    }, { quoted: contactMsg });
-                }
-            }
-
-            // Handle list response
-            if (message.message?.listResponseMessage) {
-                const selectedId = message.message.listResponseMessage.singleSelectReply.selectedRowId;
-                if (selectedId.startsWith('cat_')) {
-                    const catIndex = parseInt(selectedId.split('_')[1]);
-                    const catName = Object.keys(categories)[catIndex];
-                    const catKeys = categories[catName] || [];
-                    
-                    let commands = [];
-                    catKeys.forEach(key => {
-                        if (commandList[key]) {
-                            commands = commands.concat(commandList[key]);
-                        }
-                    });
-
-                    if (commands.length > 0) {
-                        await zk.sendMessage(dest, {
-                            text: `📋 *${catName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`,
-                            contextInfo: contextInfo
-                        }, { quoted: contactMsg });
-                    } else {
-                        await repondre(`❌ No commands found for ${catName}`);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Menu handler error:", error);
-            await repondre("❌ An error occurred while processing your request");
-        }
-    };
-
-    // Add event listener
-    zk.ev.on('messages.upsert', handler);
-
-    // Remove listener after 5 minutes
-    setTimeout(() => {
-        zk.ev.off('messages.upsert', handler);
-    }, 300000);
 });
+
+// Handle menu number replies
+adams({ nomCom: "1", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { repondre } = commandeOptions;
+    let { cm } = require(__dirname + "/../Ibrahim/adams");
+    
+    const commandList = {};
+    cm.forEach((com) => {
+        const categoryUpper = com.categorie.toUpperCase();
+        if (!commandList[categoryUpper]) commandList[categoryUpper] = [];
+        commandList[categoryUpper].push(`• ${com.nomCom}`);
+    });
+
+    const categoryKeys = Object.keys(categories);
+    let menuText = "*📋 INBOX MENU - All Commands*\n\n";
+    
+    categoryKeys.forEach((catName, index) => {
+        menuText += `*${index + 1}. ${catName}*\n`;
+        const catKeys = categories[catName] || [];
+        catKeys.forEach(key => {
+            if (commandList[key]) {
+                commandList[key].forEach(cmd => {
+                    menuText += `   ${cmd}\n`;
+                });
+            }
+        });
+        menuText += "\n";
+    });
+
+    await repondre(menuText + footer);
+});
+
+adams({ nomCom: "2", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { repondre } = commandeOptions;
+    let { cm } = require(__dirname + "/../Ibrahim/adams");
+    
+    const commandList = {};
+    cm.forEach((com) => {
+        const categoryUpper = com.categorie.toUpperCase();
+        if (!commandList[categoryUpper]) commandList[categoryUpper] = [];
+        commandList[categoryUpper].push(`• ${com.nomCom}`);
+    });
+
+    let menuText = "*🗂️ GROUP MENU - Select Category*\n\n";
+    Object.keys(categories).forEach((catName, index) => {
+        menuText += `*${index + 17}.* ${catName}\n`;
+    });
+    
+    menuText += "\n_Reply with the number to see commands in that category_\n\n";
+    await repondre(menuText + footer);
+});
+
+adams({ nomCom: "3", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { repondre } = commandeOptions;
+    await repondre("🌐 *BWM XMD WEB APP*\n\nVisit our official website here:\nwww.ibrahimadams.site\n\n" + footer);
+});
+
+adams({ nomCom: "4", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { repondre } = commandeOptions;
+    await repondre("📺 *BWM XMD YOUTUBE*\n\nCheck out our yugo app:\nbwm-xmd-go.vercel.app\n\n" + footer);
+});
+
+adams({ nomCom: "5", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { ms } = commandeOptions;
+    const randomAudio = getRandomAudio();
+    await zk.sendMessage(dest, {
+        audio: { url: `${githubRawBaseUrl}/${randomAudio}` },
+        mimetype: 'audio/mp4',
+        ptt: true,
+    }, { quoted: ms });
+});
+
+adams({ nomCom: "6", categorie: "General" }, async (dest, zk, commandeOptions) => {
+    let { repondre } = commandeOptions;
+    await repondre("📢 *BWM XMD UPDATES CHANNEL*\n\nJoin our official updates channel:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\n" + footer);
+});
+
+// Handle category number replies (7-16)
+const categoryKeys = Object.keys(categories);
+for (let i = 0; i < categoryKeys.length; i++) {
+    const categoryName = categoryKeys[i];
+    const commandNumber = (i + 7).toString();
+    
+    adams({ nomCom: commandNumber, categorie: "General" }, async (dest, zk, commandeOptions) => {
+        let { repondre } = commandeOptions;
+        let { cm } = require(__dirname + "/../Ibrahim/adams");
+        
+        const commandList = {};
+        cm.forEach((com) => {
+            const categoryUpper = com.categorie.toUpperCase();
+            if (!commandList[categoryUpper]) commandList[categoryUpper] = [];
+            commandList[categoryUpper].push(`• ${com.nomCom}`);
+        });
+
+        const catKeys = categories[categoryName] || [];
+        let commands = [];
+        catKeys.forEach(key => {
+            if (commandList[key]) {
+                commands = commands.concat(commandList[key]);
+            }
+        });
+
+        if (commands.length > 0) {
+            await repondre(`📋 *${categoryName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`);
+        } else {
+            await repondre(`❌ No commands found for ${categoryName}\n\n${footer}`);
+        }
+    });
+}
+
+// Handle additional category numbers (17+) for group menu
+for (let i = 0; i < categoryKeys.length; i++) {
+    const categoryName = categoryKeys[i];
+    const commandNumber = (i + 17).toString();
+    
+    adams({ nomCom: commandNumber, categorie: "General" }, async (dest, zk, commandeOptions) => {
+        let { repondre } = commandeOptions;
+        let { cm } = require(__dirname + "/../Ibrahim/adams");
+        
+        const commandList = {};
+        cm.forEach((com) => {
+            const categoryUpper = com.categorie.toUpperCase();
+            if (!commandList[categoryUpper]) commandList[categoryUpper] = [];
+            commandList[categoryUpper].push(`• ${com.nomCom}`);
+        });
+
+        const catKeys = categories[categoryName] || [];
+        let commands = [];
+        catKeys.forEach(key => {
+            if (commandList[key]) {
+                commands = commands.concat(commandList[key]);
+            }
+        });
+
+        if (commands.length > 0) {
+            await repondre(`📋 *${categoryName} COMMANDS*\n\n${commands.join('\n')}\n\n${footer}`);
+        } else {
+            await repondre(`❌ No commands found for ${categoryName}\n\n${footer}`);
+        }
+    });
+}
