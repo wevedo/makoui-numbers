@@ -116,7 +116,7 @@ _This menu stays active - you can use it multiple times_`;
                         case 1:
                             // Download Audio
                             await zk.sendMessage(session.dest, { 
-                                text: "🔄 Processing your request...",
+                                text: "🔄 Just amin we download your audio...",
                                 mentions: [userJid]
                             }, { quoted: message });
                             
@@ -126,7 +126,7 @@ _This menu stays active - you can use it multiple times_`;
                         case 2:
                             // Download Video
                             await zk.sendMessage(session.dest, { 
-                                text: "🔄 Processing your request...",
+                                text: "🔄 Just amin we download your video...",
                                 mentions: [userJid]
                             }, { quoted: message });
                             
