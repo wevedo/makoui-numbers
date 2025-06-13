@@ -12,8 +12,6 @@ const audioApis = [
   `https://apis.davidcyriltech.web.id/youtube/mp3?url=${encodedUrl}`,
   `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=${encodedUrl}`
 ];
-
-const videoApis = [
   `https://api.giftedtech.web.id/api/download/ytmp4?apikey=${apiKey}&url=${encodedUrl}`,
   `https://apis.davidcyriltech.web.id/download/ytmp4?url=${encodedUrl}`,
   `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=${encodedUrl}`,
