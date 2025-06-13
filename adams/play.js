@@ -6,21 +6,19 @@ const ytSearch = require("yt-search");
 const apiKey = 'gifted_api_6kuv56877d';
 
 const audioApis = [
-    `https://apis.davidcyriltech.my.id/download/ytmp3?url=`,
-    `https://apis.davidcyriltech.my.id/youtube/mp3?url=`,
     `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
     `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
-    `https://api.giftedtech.web.id/api/download/ytaudio?apikey=${apiKey}&format=128kbps&url=`,
-    `https://api.giftedtech.web.id/api/download/yta?apikey=${apiKey}&url=`
+    `https://apis.davidcyriltech.my.id/download/ytmp3?url=`,
+    `https://api.giftedtech.web.id/api/download/yta?apikey=${apiKey}&url=`,
+    `https://apis.davidcyriltech.my.id/youtube/mp3?url=`
 ];
 
 const videoApis = [
-    `https://apis.davidcyriltech.my.id/download/ytmp4?url=`,
-    `https://apis.davidcyriltech.my.id/youtube/mp4?url=`,
-    `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
     `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
-    `https://api.giftedtech.web.id/api/download/ytvid?apikey=${apiKey}&format=360p&url=`,  
-    `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`
+    `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
+    `https://apis.davidcyriltech.my.id/download/ytmp4?url=`,
+    `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`,
+    `https://apis.davidcyriltech.my.id/youtube/mp4?url=`
 ];
 
 // Store active download sessions
@@ -54,12 +52,11 @@ adams({
         const downloadOptions = `
 *📥 DOWNLOAD OPTIONS - Reply with number:*
 
-*1.* 🎵 Download Audio
-*2.* 🎥 Download Video  
+*1.* 🎵 Download Audio (Fast)
+*2.* 🎥 Download Video (Fast)  
 *3.* 📢 Our Channel
 
-_Reply with any number above to proceed_
-_This menu stays active - you can use it multiple times_`;
+_Reply with any number above to proceed_`;
 
         // Send result with numbered options
         const sentMessage = await zk.sendMessage(dest, {
@@ -109,54 +106,48 @@ _This menu stays active - you can use it multiple times_`;
                 try {
                     switch (selectedOption) {
                         case 1:
-                            // Download Audio
                             await zk.sendMessage(session.dest, { 
-                                text: "🔄 Processing your audio download...",
-                                mentions: [userJid]
+                                text: "⚡ Getting your audio...", 
+                                mentions: [userJid] 
                             }, { quoted: message });
-                            
                             await handleDownload('audio', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 2:
-                            // Download Video
                             await zk.sendMessage(session.dest, { 
-                                text: "🔄 Processing your video download...",
-                                mentions: [userJid]
+                                text: "⚡ Getting your video...", 
+                                mentions: [userJid] 
                             }, { quoted: message });
-                            
                             await handleDownload('video', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 3:
-                            // Our Channel
                             await zk.sendMessage(session.dest, {
-                                text: "📢 *Our Official Channel*\n\nJoin our WhatsApp channel for updates:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\nYugo app by bwm xmd:\ngo.bwmxmd.online",
+                                text: "📢 *Our Official Channel*\n\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y",
                                 mentions: [userJid]
                             }, { quoted: message });
                             break;
 
                         default:
                             await zk.sendMessage(session.dest, {
-                                text: "*❌ Invalid option. Please reply with 1, 2, or 3.*\n\n*Available options:*\n*1.* 🎵 Download Audio\n*2.* 🎥 Download Video\n*3.* 📢 Our Channel",
+                                text: "*❌ Invalid option. Reply with 1, 2, or 3*",
                                 mentions: [userJid]
                             }, { quoted: message });
                             break;
                     }
                 } catch (error) {
-                    console.error("Download reply handler error:", error);
+                    console.error("Error:", error);
                     await zk.sendMessage(session.dest, { 
-                        text: "❌ Error processing your request. Please try again later.",
-                        mentions: [userJid]
+                        text: "❌ Failed to process. Try again later.", 
+                        mentions: [userJid] 
                     }, { quoted: message });
                 }
             };
 
-            // Add the persistent event listener
             zk.ev.on("messages.upsert", zk.downloadHandler);
         }
 
-        // Clean up old sessions (older than 1 hour) to prevent memory leaks
+        // Clean up old sessions
         const oneHourAgo = Date.now() - (60 * 60 * 1000);
         for (const [sessionId, session] of downloadSessions.entries()) {
             if (session.createdAt < oneHourAgo) {
@@ -166,198 +157,111 @@ _This menu stays active - you can use it multiple times_`;
 
     } catch (error) {
         console.error("Search error:", error);
-        return repondre("Error searching for the video. Please try again.");
+        return repondre("Error searching. Try again.");
     }
 });
 
-// Enhanced download function with better error handling and API response processing
+// Optimized download function for fast media sending
 async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
         const encodedUrl = encodeURIComponent(videoUrl);
         
         let downloadUrl = null;
-        let apiResponse = null;
         
         // Try each API until successful
         for (const api of apis) {
             try {
-                const response = await axios.get(`${api}${encodedUrl}`, {
-                    timeout: 15000 // 15 seconds timeout
-                });
+                const response = await axios.get(`${api}${encodedUrl}`, { timeout: 8000 });
                 
-                // Check for various response structures
-                if (response.data) {
-                    // Check for nested result object
-                    if (response.data.result && (response.data.result.download_url || response.data.result.url)) {
-                        downloadUrl = response.data.result.download_url || response.data.result.url;
-                        apiResponse = response.data;
-                        break;
-                    }
-                    
-                    // Check for direct URL fields
-                    const possibleUrlFields = [
-                        'download_url', 'url', 'audio_url', 'video_url',
-                        'link', 'download', 'mp3', 'mp4'
-                    ];
-                    
-                    for (const field of possibleUrlFields) {
-                        if (response.data[field]) {
-                            downloadUrl = response.data[field];
-                            apiResponse = response.data;
-                            break;
-                        }
-                    }
-                    
-                    if (downloadUrl) break;
-                    
-                    // Some APIs return direct URL in data
-                    if (typeof response.data === 'string' && response.data.startsWith('http')) {
-                        downloadUrl = response.data;
-                        apiResponse = response.data;
-                        break;
-                    }
+                // Check for direct URL in response
+                if (response.data?.url) {
+                    downloadUrl = response.data.url;
+                    break;
+                }
+                if (response.data?.result?.url) {
+                    downloadUrl = response.data.result.url;
+                    break;
+                }
+                if (type === 'audio' && response.data?.audio_url) {
+                    downloadUrl = response.data.audio_url;
+                    break;
+                }
+                if (type === 'video' && response.data?.video_url) {
+                    downloadUrl = response.data.video_url;
+                    break;
+                }
+                if (response.data?.download_url) {
+                    downloadUrl = response.data.download_url;
+                    break;
                 }
             } catch (e) {
-                console.log(`API ${api} failed: ${e.message}`);
+                console.log(`API ${api} failed, trying next...`);
                 continue;
             }
         }
 
         if (!downloadUrl) {
             return await zk.sendMessage(dest, { 
-                text: `❌ Failed to get download link. All APIs are currently unavailable. Try again later.` 
+                text: `❌ Couldn't get download link. Try again later.` 
             }, { quoted: originalMsg });
         }
 
-        // For large files, send as document to avoid issues
-        const sendAsDocument = false; // Change to true if you want to always send as document
-        
-        // Send the downloaded file with better error handling
-        try {
-            if (type === 'audio') {
-                if (sendAsDocument) {
-                    // Send as audio document for better reliability
-                    await zk.sendMessage(dest, {
-                        document: { url: downloadUrl },
-                        mimetype: 'audio/mpeg',
-                        fileName: `audio_${Date.now()}.mp3`,
-                        contextInfo: {
-                            externalAdReply: {
-                                title: "Audio Download",
-                                body: "Here's your requested audio",
-                                mediaType: 2,
-                                thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                mediaUrl: downloadUrl,
-                                sourceUrl: downloadUrl
-                            }
-                        }
-                    }, { quoted: originalMsg });
-                } else {
-                    // Try to send as audio message
-                    try {
-                        await zk.sendMessage(dest, {
-                            audio: { url: downloadUrl },
-                            mimetype: 'audio/mpeg',
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: "Audio Download",
-                                    body: "Here's your requested audio",
-                                    mediaType: 2,
-                                    thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                    mediaUrl: downloadUrl,
-                                    sourceUrl: downloadUrl
-                                }
-                            }
-                        }, { quoted: originalMsg });
-                    } catch (audioError) {
-                        console.log("Audio message failed, sending as document:", audioError);
-                        await zk.sendMessage(dest, {
-                            document: { url: downloadUrl },
-                            mimetype: 'audio/mpeg',
-                            fileName: `audio_${Date.now()}.mp3`,
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: "Audio Download",
-                                    body: "Here's your requested audio",
-                                    mediaType: 2,
-                                    thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                    mediaUrl: downloadUrl,
-                                    sourceUrl: downloadUrl
-                                }
-                            }
-                        }, { quoted: originalMsg });
+        // Send media directly from URL
+        if (type === 'audio') {
+            await zk.sendMessage(dest, {
+                audio: { url: downloadUrl },
+                mimetype: 'audio/mpeg',
+                ptt: false,
+                contextInfo: {
+                    externalAdReply: {
+                        title: "Audio Download",
+                        body: "Here's your audio",
+                        mediaType: 2,
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
+                        mediaUrl: downloadUrl,
+                        sourceUrl: downloadUrl
                     }
                 }
-            } else {
-                // For video downloads
-                if (sendAsDocument) {
-                    await zk.sendMessage(dest, {
-                        document: { url: downloadUrl },
-                        mimetype: 'video/mp4',
-                        fileName: `video_${Date.now()}.mp4`,
-                        caption: "Here's your video download",
-                        contextInfo: {
-                            externalAdReply: {
-                                title: "Video Download",
-                                body: "Here's your requested video",
-                                mediaType: 2,
-                                thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                mediaUrl: downloadUrl,
-                                sourceUrl: downloadUrl
-                            }
-                        }
-                    }, { quoted: originalMsg });
-                } else {
-                    // Try to send as video message first
-                    try {
-                        await zk.sendMessage(dest, {
-                            video: { url: downloadUrl },
-                            mimetype: 'video/mp4',
-                            caption: "Here's your video download",
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: "Video Download",
-                                    body: "Here's your requested video",
-                                    mediaType: 2,
-                                    thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                    mediaUrl: downloadUrl,
-                                    sourceUrl: downloadUrl
-                                }
-                            }
-                        }, { quoted: originalMsg });
-                    } catch (videoError) {
-                        console.log("Video message failed, sending as document:", videoError);
-                        await zk.sendMessage(dest, {
-                            document: { url: downloadUrl },
-                            mimetype: 'video/mp4',
-                            fileName: `video_${Date.now()}.mp4`,
-                            caption: "Here's your video download",
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: "Video Download",
-                                    body: "Here's your requested video",
-                                    mediaType: 2,
-                                    thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                                    mediaUrl: downloadUrl,
-                                    sourceUrl: downloadUrl
-                                }
-                            }
-                        }, { quoted: originalMsg });
-                    }
-                }
-            }
-        } catch (sendError) {
-            console.error("Error sending file:", sendError);
-            await zk.sendMessage(dest, { 
-                text: `❌ Error sending the ${type} file. The file might be too large or the download link expired.`
             }, { quoted: originalMsg });
+        } else {
+            await zk.sendMessage(dest, {
+                video: { url: downloadUrl },
+                mimetype: 'video/mp4',
+                caption: "Here's your video",
+                contextInfo: {
+                    externalAdReply: {
+                        title: "Video Download",
+                        body: "Here's your video",
+                        mediaType: 2,
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
+                        mediaUrl: downloadUrl,
+                        sourceUrl: downloadUrl
+                    }
+                }
+hhh            }, { quoted: hhhhhhoriginalMsg });
         }
 
     } catch (error) {
-        console.error("Download processing error:", error);
+        console.error("Download error:", error);
         await zk.sendMessage(dest, { 
-            text: `❌ Error during ${type} download processing. Please try again with a different video.`
+            text: `❌ Failed to send ${type}. The file might be too large.` 
         }, { quoted: originalMsg });
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                               
