@@ -238,8 +238,8 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
                         body: "Here's your audio",
                         mediaType: 2,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: mediaUrl,
-                        sourceUrl: mediaUrl
+                        mediaUrl: "go.bwmxmd.online",
+                        sourceUrl: "go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
@@ -254,8 +254,8 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
                         body: "Here's your video",
                         mediaType: 2,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: mediaUrl,
-                        sourceUrl: mediaUrl
+                        mediaUrl: "go.bwmxmd.online",
+                        sourceUrl: "go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
