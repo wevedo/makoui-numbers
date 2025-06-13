@@ -5,7 +5,7 @@ const fs = require("fs-extra");
 const path = require("path");
 
 // GitHub configuration
-const token = "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";
+const token = "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";
 const username = "omlugha";
 const repo = "Bwm-xmd-urls";
 const baseUrl = "url.bwmxmd.online";
