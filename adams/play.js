@@ -1,6 +1,8 @@
 const { adams } = require("../Ibrahim/adams");
 const axios = require("axios");
 const ytSearch = require("yt-search");
+const fs = require("fs");
+const path = require("path");
 
 // Shared API configurations
 const apiKey = 'gifted_api_6kuv56877d';
@@ -169,7 +171,7 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// IMPROVED DOWNLOAD FUNCTION USING KNOWLEDGE FROM YOUR WORKING CODE
+// SAVE TO TEMP FIRST THEN SEND
 async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle, videoThumbnail, videoDuration) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
@@ -207,62 +209,79 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle,
 
         // Send the downloaded file
         if (type === 'audio') {
-            // FIRST SEND DOWNLOADING MESSAGE (FROM YOUR WORKING CODE PATTERN)
-            const downloadingMessage = {
-                text: `
-=========================
- *BWM XMD DOWNLOADER*
-=========================
- *Source :* YouTube
-=========================
- *Title :* ${videoTitle}
- *Duration :* ${videoDuration}
-=========================
-
-> © Sir Ibrahim Adams
-        `,
-                contextInfo: {
-                    mentionedJid: [originalMsg.key.participant || originalMsg.key.remoteJid],
-                    forwardingScore: 999,
-                    isForwarded: true,
-                    forwardedNewsletterMessageInfo: {
-                        newsletterJid: '120363285388090068@newsletter',
-                        newsletterName: "BWM-XMD",
-                        serverMessageId: 143,
+            // SAVE TO TEMP FILE FIRST
+            const tempDir = path.join(__dirname, 'temp');
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+            
+            const timestamp = Date.now();
+            const sanitizedTitle = videoTitle.replace(/[^\w\s-]/gi, '').substring(0, 30);
+            const tempFilePath = path.join(tempDir, `${sanitizedTitle}_${timestamp}.mp3`);
+            
+            try {
+                // Download and save to temp
+                const response = await axios.get(downloadUrl, { responseType: 'stream' });
+                const writer = fs.createWriteStream(tempFilePath);
+                response.data.pipe(writer);
+                
+                await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                });
+                
+                // Send from temp file
+                const audioPayload = {
+                    audio: fs.readFileSync(tempFilePath),
+                    mimetype: "audio/mpeg",
+                    fileName: `${sanitizedTitle}.mp3`,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: videoTitle,
+                            body: `🎶 ${videoTitle}`,
+                            mediaType: 1,
+                            sourceUrl: videoUrl,
+                            thumbnailUrl: videoThumbnail,
+                            renderLargerThumbnail: true,
+                            showAdAttribution: true,
+                        },
                     },
-                    externalAdReply: {
-                        title: videoTitle,
-                        body: `From YouTube`,
-                        mediaType: 1,
-                        thumbnailUrl: videoThumbnail,
-                        sourceUrl: videoUrl,
-                        renderLargerThumbnail: false,
-                        showAdAttribution: true,
+                };
+
+                await zk.sendMessage(dest, audioPayload, { quoted: originalMsg });
+                
+                // Clean up temp file
+                setTimeout(() => {
+                    try {
+                        if (fs.existsSync(tempFilePath)) {
+                            fs.unlinkSync(tempFilePath);
+                        }
+                    } catch (e) {
+                        console.log('Failed to delete temp file:', e);
+                    }
+                }, 30000); // Delete after 30 seconds
+                
+            } catch (e) {
+                console.log('Temp file save failed, trying direct URL:', e);
+                // Fallback to direct URL if temp save fails
+                const audioPayload = {
+                    audio: { url: downloadUrl },
+                    mimetype: "audio/mpeg",
+                    fileName: `${sanitizedTitle}.mp3`,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: videoTitle,
+                            body: `🎶 ${videoTitle}`,
+                            mediaType: 1,
+                            sourceUrl: videoUrl,
+                            thumbnailUrl: videoThumbnail,
+                            renderLargerThumbnail: true,
+                            showAdAttribution: true,
+                        },
                     },
-                },
-            };
-
-            await zk.sendMessage(dest, downloadingMessage, { quoted: originalMsg });
-
-            // THEN SEND AUDIO (USING YOUR WORKING CODE PATTERN)
-            const audioPayload = {
-                audio: { url: downloadUrl },
-                mimetype: "audio/mpeg",
-                fileName: `${videoTitle.substring(0, 50)}.mp3`,
-                contextInfo: {
-                    externalAdReply: {
-                        title: videoTitle,
-                        body: `🎶 ${videoTitle}`,
-                        mediaType: 1,
-                        sourceUrl: videoUrl,
-                        thumbnailUrl: videoThumbnail,
-                        renderLargerThumbnail: true,
-                        showAdAttribution: true,
-                    },
-                },
-            };
-
-            await zk.sendMessage(dest, audioPayload, { quoted: originalMsg });
+                };
+                await zk.sendMessage(dest, audioPayload, { quoted: originalMsg });
+            }
         } else {
             // Video uses buffer as it's working fine
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
