@@ -168,7 +168,7 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// EXACT SAME DOWNLOAD FUNCTION FROM YOUR WORKING BUTTON CODE
+// Fixed audio download function
 async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
@@ -180,17 +180,17 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
         for (const api of apis) {
             try {
                 const response = await axios.get(`${api}${encodedUrl}`);
-           if (
-    response.data?.result?.download_url || 
-    response.data?.url || 
-    response.data?.audio_url || 
-    response.data?.video_url
-) {
-    downloadUrl = 
-        response.data.result?.download_url || 
-        response.data.url || 
-        response.data.audio_url || 
-        response.data.video_url;
+                if (
+                    response.data?.result?.download_url || 
+                    response.data?.url || 
+                    response.data?.audio_url || 
+                    response.data?.video_url
+                ) {
+                    downloadUrl = 
+                        response.data.result?.download_url || 
+                        response.data.url || 
+                        response.data.audio_url || 
+                        response.data.video_url;
                     break;
                 }
             } catch (e) {
@@ -204,14 +204,12 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
             }, { quoted: originalMsg });
         }
 
-        // Send the downloaded file - EXACT SAME AS YOUR BUTTON CODE
         if (type === 'audio') {
-            const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-            const audioBuffer = Buffer.from(audioResponse.data, 'binary');
-            
+            // For audio, we'll stream it directly without downloading first
             await zk.sendMessage(dest, {
-                audio: audioBuffer,
+                audio: { url: downloadUrl },
                 mimetype: 'audio/mpeg',
+                ptt: false,
                 contextInfo: {
                     externalAdReply: {
                         title: "Your Audio Download",
@@ -224,6 +222,7 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
                 }
             }, { quoted: originalMsg });
         } else {
+            // Video handling remains the same
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
