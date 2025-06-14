@@ -6,11 +6,12 @@ const ytSearch = require("yt-search");
 const apiKey = 'gifted_api_6kuv56877d';
 
 const audioApis = [
-  `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
+//  `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
   `https://apis.davidcyriltech.web.id/download/ytmp3?url=`,
   `https://api.giftedtech.web.id/api/download/ytmusic?apikey=${apiKey}&url=`,
-  `https://apis.davidcyriltech.web.id/youtube/mp3?url=`,
-  `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`
+  `https://apis.davidcyriltech.web.id/youtube/mp3?url=`
+
 ];
 
 const videoApis = [
