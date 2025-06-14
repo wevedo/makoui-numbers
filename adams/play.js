@@ -16,13 +16,11 @@ const audioApis = [
 ];
 
 const videoApis = [
-
-    `https://apis.davidcyriltech.my.id/download/ytmp4?url=`,
-    `https://apis.davidcyriltech.my.id/youtube/mp4?url=`,
-    `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
-    `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
-    `https://api.giftedtech.web.id/api/download/ytvid?apikey=${apiKey}&format=360p&url=`,  
-    `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`
+  `https://api.giftedtech.web.id/api/download/ytmp4?apikey=${apiKey}&url=`,
+  `https://apis.davidcyriltech.web.id/download/ytmp4?url=`,
+  `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`,
+  `https://apis.davidcyriltech.web.id/youtube/mp4?url=`,
+  `https://api.giftedtech.web.id/api/download/ytvideo?apikey=${apiKey}&url=`
 ];
 
 // Store active download sessions
