@@ -69,8 +69,8 @@ _This menu stays active - you can use it multiple times_`;
                     body: "Available on YouTube",
                     mediaType: 2,
                     thumbnailUrl: video.thumbnail,
-                    mediaUrl: "go.bwmxmd.online",
-                    sourceUrl: "go.bwmxmd.online"
+                    mediaUrl: "https://go.bwmxmd.online",
+                    sourceUrl: "https://go.bwmxmd.online"
                 }
             }
         }, { quoted: ms });
@@ -113,7 +113,7 @@ _This menu stays active - you can use it multiple times_`;
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('audio', session.videoUrl, session.dest, zk, message);
+                            await handleDownload('audio', session.videoUrl, session.dest, zk, message, session.videoTitle);
                             break;
 
                         case 2:
@@ -123,13 +123,13 @@ _This menu stays active - you can use it multiple times_`;
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('video', session.videoUrl, session.dest, zk, message);
+                            await handleDownload('video', session.videoUrl, session.dest, zk, message, session.videoTitle);
                             break;
 
                         case 3:
                             // Our Channel
                             await zk.sendMessage(session.dest, {
-                                text: "📢 *Our Official Channel*\n\nJoin our WhatsApp channel for updates:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\nYugo app by bwm xmd:\ngo.bwmxmd.online",
+                                text: "📢 *Our Official Channel*\n\nJoin our WhatsApp channel for updates:\nwhatsapp.com/channel/0029VaZuGSxEawdxZK9CzM0Y\n\nYugo app by bwm xmd:\nhttps://go.bwmxmd.online",
                                 mentions: [userJid]
                             }, { quoted: message });
                             break;
@@ -168,8 +168,8 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// Fixed audio download function with proper metadata
-async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
+// FIXED DOWNLOAD FUNCTION WITH PROPER AUDIO METADATA
+async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
         const encodedUrl = encodeURIComponent(videoUrl);
@@ -204,43 +204,44 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
             }, { quoted: originalMsg });
         }
 
+        // Send the downloaded file with proper metadata
         if (type === 'audio') {
-            // For audio, we'll download it first to ensure proper format
             const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const audioBuffer = Buffer.from(audioResponse.data, 'binary');
             
             await zk.sendMessage(dest, {
                 audio: audioBuffer,
-                mimetype: 'audio/mpeg',
+                mimetype: 'audio/mp4',
+                fileName: `${videoTitle || 'audio'}.mp3`,
                 ptt: false,
                 contextInfo: {
                     externalAdReply: {
-                        title: "Your Audio Download",
+                        title: videoTitle || "Your Audio Download",
                         body: "BWM XMD Downloader",
-                        mediaType: 2,
+                        mediaType: 1,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: "go.bwmxmd.online",
-                        sourceUrl: "go.bwmxmd.online"
+                        mediaUrl: "https://go.bwmxmd.online",
+                        sourceUrl: "https://go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
         } else {
-            // Video handling
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
             await zk.sendMessage(dest, {
                 video: videoBuffer,
                 mimetype: 'video/mp4',
+                fileName: `${videoTitle || 'video'}.mp4`,
                 caption: "Here's your video download",
                 contextInfo: {
                     externalAdReply: {
-                        title: "Your Video Download",
+                        title: videoTitle || "Your Video Download",
                         body: "BWM XMD Downloader",
                         mediaType: 2,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: "go.bwmxmd.online",
-                        sourceUrl: "go.bwmxmd.online"
+                        mediaUrl: "https://go.bwmxmd.online",
+                        sourceUrl: "https://go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
