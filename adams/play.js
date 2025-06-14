@@ -168,7 +168,7 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// FIXED DOWNLOAD FUNCTION WITH PROPER AUDIO METADATA
+// FIXED DOWNLOAD FUNCTION - USING DIRECT URL FOR AUDIO INSTEAD OF BUFFER
 async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
@@ -204,15 +204,13 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle)
             }, { quoted: originalMsg });
         }
 
-        // Send the downloaded file with proper metadata
+        // Send the downloaded file
         if (type === 'audio') {
-            const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-            const audioBuffer = Buffer.from(audioResponse.data, 'binary');
-            
+            // USE DIRECT URL INSTEAD OF BUFFER FOR AUDIO
             await zk.sendMessage(dest, {
-                audio: audioBuffer,
+                audio: { url: downloadUrl },
                 mimetype: 'audio/mp4',
-                fileName: `${videoTitle || 'audio'}.mp3`,
+                fileName: `${videoTitle || 'BWM_Audio'}.mp3`,
                 ptt: false,
                 contextInfo: {
                     externalAdReply: {
@@ -226,13 +224,14 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle)
                 }
             }, { quoted: originalMsg });
         } else {
+            // VIDEO STILL USES BUFFER AS IT'S WORKING FINE
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
             await zk.sendMessage(dest, {
                 video: videoBuffer,
                 mimetype: 'video/mp4',
-                fileName: `${videoTitle || 'video'}.mp4`,
+                fileName: `${videoTitle || 'BWM_Video'}.mp4`,
                 caption: "Here's your video download",
                 contextInfo: {
                     externalAdReply: {
