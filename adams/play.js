@@ -69,8 +69,8 @@ _This menu stays active - you can use it multiple times_`;
                     body: "Available on YouTube",
                     mediaType: 2,
                     thumbnailUrl: video.thumbnail,
-                    mediaUrl: video.url,
-                    sourceUrl: video.url
+                    mediaUrl: "go.bwmxmd.online",
+                    sourceUrl: "go.bwmxmd.online"
                 }
             }
         }, { quoted: ms });
@@ -168,7 +168,7 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// Fixed audio download function
+// Fixed audio download function with proper metadata
 async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
@@ -205,9 +205,12 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
         }
 
         if (type === 'audio') {
-            // For audio, we'll stream it directly without downloading first
+            // For audio, we'll download it first to ensure proper format
+            const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+            const audioBuffer = Buffer.from(audioResponse.data, 'binary');
+            
             await zk.sendMessage(dest, {
-                audio: { url: downloadUrl },
+                audio: audioBuffer,
                 mimetype: 'audio/mpeg',
                 ptt: false,
                 contextInfo: {
@@ -216,13 +219,13 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
                         body: "BWM XMD Downloader",
                         mediaType: 2,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: downloadUrl,
-                        sourceUrl: downloadUrl
+                        mediaUrl: "go.bwmxmd.online",
+                        sourceUrl: "go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
         } else {
-            // Video handling remains the same
+            // Video handling
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
@@ -236,8 +239,8 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
                         body: "BWM XMD Downloader",
                         mediaType: 2,
                         thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
-                        mediaUrl: downloadUrl,
-                        sourceUrl: downloadUrl
+                        mediaUrl: "go.bwmxmd.online",
+                        sourceUrl: "go.bwmxmd.online"
                     }
                 }
             }, { quoted: originalMsg });
