@@ -171,7 +171,7 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// SAVE TO TEMP FIRST THEN SEND
+// COMPLETELY NEW APPROACH - SEND AS VOICE MESSAGE
 async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle, videoThumbnail, videoDuration) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
@@ -207,80 +207,91 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle,
             }, { quoted: originalMsg });
         }
 
-        // Send the downloaded file
         if (type === 'audio') {
-            // SAVE TO TEMP FILE FIRST
-            const tempDir = path.join(__dirname, 'temp');
-            if (!fs.existsSync(tempDir)) {
-                fs.mkdirSync(tempDir, { recursive: true });
-            }
-            
-            const timestamp = Date.now();
-            const sanitizedTitle = videoTitle.replace(/[^\w\s-]/gi, '').substring(0, 30);
-            const tempFilePath = path.join(tempDir, `${sanitizedTitle}_${timestamp}.mp3`);
-            
             try {
-                // Download and save to temp
-                const response = await axios.get(downloadUrl, { responseType: 'stream' });
-                const writer = fs.createWriteStream(tempFilePath);
-                response.data.pipe(writer);
-                
-                await new Promise((resolve, reject) => {
-                    writer.on('finish', resolve);
-                    writer.on('error', reject);
-                });
-                
-                // Send from temp file
-                const audioPayload = {
-                    audio: fs.readFileSync(tempFilePath),
-                    mimetype: "audio/mpeg",
-                    fileName: `${sanitizedTitle}.mp3`,
-                    contextInfo: {
-                        externalAdReply: {
-                            title: videoTitle,
-                            body: `🎶 ${videoTitle}`,
-                            mediaType: 1,
-                            sourceUrl: videoUrl,
-                            thumbnailUrl: videoThumbnail,
-                            renderLargerThumbnail: true,
-                            showAdAttribution: true,
-                        },
-                    },
-                };
-
-                await zk.sendMessage(dest, audioPayload, { quoted: originalMsg });
-                
-                // Clean up temp file
-                setTimeout(() => {
-                    try {
-                        if (fs.existsSync(tempFilePath)) {
-                            fs.unlinkSync(tempFilePath);
-                        }
-                    } catch (e) {
-                        console.log('Failed to delete temp file:', e);
-                    }
-                }, 30000); // Delete after 30 seconds
-                
-            } catch (e) {
-                console.log('Temp file save failed, trying direct URL:', e);
-                // Fallback to direct URL if temp save fails
-                const audioPayload = {
+                // METHOD 1: Try as voice message (ptt)
+                await zk.sendMessage(dest, {
                     audio: { url: downloadUrl },
-                    mimetype: "audio/mpeg",
-                    fileName: `${sanitizedTitle}.mp3`,
+                    mimetype: 'audio/mp4',
+                    ptt: true,
+                    waveform: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                     contextInfo: {
                         externalAdReply: {
                             title: videoTitle,
-                            body: `🎶 ${videoTitle}`,
+                            body: "🎵 Audio Download - BWM XMD",
                             mediaType: 1,
-                            sourceUrl: videoUrl,
                             thumbnailUrl: videoThumbnail,
-                            renderLargerThumbnail: true,
+                            sourceUrl: videoUrl,
+                            renderLargerThumbnail: false,
                             showAdAttribution: true,
-                        },
-                    },
-                };
-                await zk.sendMessage(dest, audioPayload, { quoted: originalMsg });
+                        }
+                    }
+                }, { quoted: originalMsg });
+                
+            } catch (e1) {
+                try {
+                    // METHOD 2: Try without ptt
+                    await zk.sendMessage(dest, {
+                        audio: { url: downloadUrl },
+                        mimetype: 'audio/ogg; codecs=opus',
+                        ptt: false,
+                        contextInfo: {
+                            externalAdReply: {
+                                title: videoTitle,
+                                body: "🎵 Audio Download - BWM XMD",
+                                mediaType: 1,
+                                thumbnailUrl: videoThumbnail,
+                                sourceUrl: videoUrl,
+                                renderLargerThumbnail: true,
+                                showAdAttribution: true,
+                            }
+                        }
+                    }, { quoted: originalMsg });
+                    
+                } catch (e2) {
+                    try {
+                        // METHOD 3: Try as media message
+                        const audioResponse = await axios.get(downloadUrl, { 
+                            responseType: 'arraybuffer',
+                            timeout: 60000
+                        });
+                        const audioBuffer = Buffer.from(audioResponse.data);
+                        
+                        await zk.sendMessage(dest, {
+                            audio: audioBuffer,
+                            mimetype: 'audio/wav',
+                            ptt: false,
+                            contextInfo: {
+                                externalAdReply: {
+                                    title: videoTitle,
+                                    body: "🎵 Audio Download - BWM XMD",
+                                    mediaType: 1,
+                                    thumbnailUrl: videoThumbnail,
+                                    sourceUrl: videoUrl,
+                                    renderLargerThumbnail: true,
+                                    showAdAttribution: true,
+                                }
+                            }
+                        }, { quoted: originalMsg });
+                        
+                    } catch (e3) {
+                        // METHOD 4: Last resort - send as text with download link
+                        await zk.sendMessage(dest, {
+                            text: `🎵 *${videoTitle}*\n\n📥 *Download Link:*\n${downloadUrl}\n\n_Tap the link above to download your audio file_\n\n> © BWM XMD`,
+                            contextInfo: {
+                                externalAdReply: {
+                                    title: videoTitle,
+                                    body: "🎵 Audio Download Link",
+                                    mediaType: 1,
+                                    thumbnailUrl: videoThumbnail,
+                                    sourceUrl: downloadUrl,
+                                    renderLargerThumbnail: true,
+                                    showAdAttribution: true,
+                                }
+                            }
+                        }, { quoted: originalMsg });
+                    }
+                }
             }
         } else {
             // Video uses buffer as it's working fine
