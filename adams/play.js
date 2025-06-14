@@ -1,16 +1,13 @@
 const { adams } = require("../Ibrahim/adams");
 const axios = require("axios");
 const ytSearch = require("yt-search");
-const fs = require("fs");
-const path = require("path");
 
 // Shared API configurations
 const apiKey = 'gifted_api_6kuv56877d';
 
 const audioApis = [
-  `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
+   `https://api.giftedtech.web.id/api/download/ytmusic?apikey=${apiKey}&url=`,
   `https://apis.davidcyriltech.web.id/download/ytmp3?url=`,
-  `https://api.giftedtech.web.id/api/download/ytmusic?apikey=${apiKey}&url=`,
   `https://apis.davidcyriltech.web.id/youtube/mp3?url=`,
   `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`
 ];
@@ -83,7 +80,6 @@ _This menu stays active - you can use it multiple times_`;
             videoUrl: videoUrl,
             videoTitle: video.title,
             videoThumbnail: video.thumbnail,
-            videoDuration: video.timestamp,
             dest: dest,
             createdAt: Date.now()
         });
@@ -116,7 +112,7 @@ _This menu stays active - you can use it multiple times_`;
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('audio', session.videoUrl, session.dest, zk, message, session.videoTitle, session.videoThumbnail, session.videoDuration);
+                            await handleDownload('audio', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 2:
@@ -126,7 +122,7 @@ _This menu stays active - you can use it multiple times_`;
                                 mentions: [userJid]
                             }, { quoted: message });
                             
-                            await handleDownload('video', session.videoUrl, session.dest, zk, message, session.videoTitle, session.videoThumbnail, session.videoDuration);
+                            await handleDownload('video', session.videoUrl, session.dest, zk, message);
                             break;
 
                         case 3:
@@ -171,8 +167,8 @@ _This menu stays active - you can use it multiple times_`;
     }
 });
 
-// COMPLETELY NEW APPROACH - SEND AS VOICE MESSAGE
-async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle, videoThumbnail, videoDuration) {
+// EXACT SAME DOWNLOAD FUNCTION FROM YOUR WORKING BUTTON CODE
+async function handleDownload(type, videoUrl, dest, zk, originalMsg) {
     try {
         const apis = type === 'audio' ? audioApis : videoApis;
         const encodedUrl = encodeURIComponent(videoUrl);
@@ -183,17 +179,17 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle,
         for (const api of apis) {
             try {
                 const response = await axios.get(`${api}${encodedUrl}`);
-                if (
-                    response.data?.result?.download_url || 
-                    response.data?.url || 
-                    response.data?.audio_url || 
-                    response.data?.video_url
-                ) {
-                    downloadUrl = 
-                        response.data.result?.download_url || 
-                        response.data.url || 
-                        response.data.audio_url || 
-                        response.data.video_url;
+           if (
+    response.data?.result?.download_url || 
+    response.data?.url || 
+    response.data?.audio_url || 
+    response.data?.video_url
+) {
+    downloadUrl = 
+        response.data.result?.download_url || 
+        response.data.url || 
+        response.data.audio_url || 
+        response.data.video_url;
                     break;
                 }
             } catch (e) {
@@ -207,94 +203,26 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle,
             }, { quoted: originalMsg });
         }
 
+        // Send the downloaded file - EXACT SAME AS YOUR BUTTON CODE
         if (type === 'audio') {
-            try {
-                // METHOD 1: Try as voice message (ptt)
-                await zk.sendMessage(dest, {
-                    audio: { url: downloadUrl },
-                    mimetype: 'audio/mp4',
-                    ptt: true,
-                    waveform: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                    contextInfo: {
-                        externalAdReply: {
-                            title: videoTitle,
-                            body: "🎵 Audio Download - BWM XMD",
-                            mediaType: 1,
-                            thumbnailUrl: videoThumbnail,
-                            sourceUrl: videoUrl,
-                            renderLargerThumbnail: false,
-                            showAdAttribution: true,
-                        }
-                    }
-                }, { quoted: originalMsg });
-                
-            } catch (e1) {
-                try {
-                    // METHOD 2: Try without ptt
-                    await zk.sendMessage(dest, {
-                        audio: { url: downloadUrl },
-                        mimetype: 'audio/ogg; codecs=opus',
-                        ptt: false,
-                        contextInfo: {
-                            externalAdReply: {
-                                title: videoTitle,
-                                body: "🎵 Audio Download - BWM XMD",
-                                mediaType: 1,
-                                thumbnailUrl: videoThumbnail,
-                                sourceUrl: videoUrl,
-                                renderLargerThumbnail: true,
-                                showAdAttribution: true,
-                            }
-                        }
-                    }, { quoted: originalMsg });
-                    
-                } catch (e2) {
-                    try {
-                        // METHOD 3: Try as media message
-                        const audioResponse = await axios.get(downloadUrl, { 
-                            responseType: 'arraybuffer',
-                            timeout: 60000
-                        });
-                        const audioBuffer = Buffer.from(audioResponse.data);
-                        
-                        await zk.sendMessage(dest, {
-                            audio: audioBuffer,
-                            mimetype: 'audio/wav',
-                            ptt: false,
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: videoTitle,
-                                    body: "🎵 Audio Download - BWM XMD",
-                                    mediaType: 1,
-                                    thumbnailUrl: videoThumbnail,
-                                    sourceUrl: videoUrl,
-                                    renderLargerThumbnail: true,
-                                    showAdAttribution: true,
-                                }
-                            }
-                        }, { quoted: originalMsg });
-                        
-                    } catch (e3) {
-                        // METHOD 4: Last resort - send as text with download link
-                        await zk.sendMessage(dest, {
-                            text: `🎵 *${videoTitle}*\n\n📥 *Download Link:*\n${downloadUrl}\n\n_Tap the link above to download your audio file_\n\n> © BWM XMD`,
-                            contextInfo: {
-                                externalAdReply: {
-                                    title: videoTitle,
-                                    body: "🎵 Audio Download Link",
-                                    mediaType: 1,
-                                    thumbnailUrl: videoThumbnail,
-                                    sourceUrl: downloadUrl,
-                                    renderLargerThumbnail: true,
-                                    showAdAttribution: true,
-                                }
-                            }
-                        }, { quoted: originalMsg });
+            const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+            const audioBuffer = Buffer.from(audioResponse.data, 'binary');
+            
+            await zk.sendMessage(dest, {
+                audio: audioBuffer,
+                mimetype: 'audio/mpeg',
+                contextInfo: {
+                    externalAdReply: {
+                        title: "Your Audio Download",
+                        body: "BWM XMD Downloader",
+                        mediaType: 2,
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
+                        mediaUrl: downloadUrl,
+                        sourceUrl: downloadUrl
                     }
                 }
-            }
+            }, { quoted: originalMsg });
         } else {
-            // Video uses buffer as it's working fine
             const videoResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
             const videoBuffer = Buffer.from(videoResponse.data, 'binary');
             
@@ -304,12 +232,12 @@ async function handleDownload(type, videoUrl, dest, zk, originalMsg, videoTitle,
                 caption: "Here's your video download",
                 contextInfo: {
                     externalAdReply: {
-                        title: videoTitle || "Your Video Download",
+                        title: "Your Video Download",
                         body: "BWM XMD Downloader",
                         mediaType: 2,
-                        thumbnailUrl: videoThumbnail,
-                        mediaUrl: videoUrl,
-                        sourceUrl: videoUrl
+                        thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
+                        mediaUrl: downloadUrl,
+                        sourceUrl: downloadUrl
                     }
                 }
             }, { quoted: originalMsg });
