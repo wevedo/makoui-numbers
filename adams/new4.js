@@ -15,11 +15,7 @@ adams({
     categorie: "Payment",
     reaction: "💰"
 }, async (dest, zk, commandOptions) => {
-    const { arg, ms, repondre, superUser } = commandOptions;
-
-    if (!superUser) {
-        return repondre("🚫 *This command is only used by BWM-XMD CEO. For users is coming soon*");
-    }
+    const { arg, ms, repondre } = commandOptions;
 
     if (!arg[0]) {
         return repondre("💰 Please provide an amount.\n\nExample: *pay 100*");
@@ -327,3 +323,4 @@ async function sendPaymentConfirmation(session, zk, message) {
         console.error("Confirmation message error:", error);
     }
 }
+
