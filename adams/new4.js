@@ -164,7 +164,7 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
             ];
         } else {
             return await zk.sendMessage(session.dest, {
-                text: `❌ *Invalid phone number format*\n\n*You entered:* ${phoneInput}\n\nPlease use one of these formats:\n• 0727716045\n• 254727716045\n• +254727716045\n• 727716045\n\nTry again:`,
+                text: `*Wait a minute we process your request *\n\n*Your Number:* ${phoneInput}\n\n`,
                 mentions: [message.key.participant || message.key.remoteJid]
             }, { quoted: message });
         }
