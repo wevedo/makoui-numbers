@@ -2,16 +2,19 @@
 const { adams } = require("../Ibrahim/adams");
 const axios = require("axios");
 
-// M-Pesa API Configuration (exact same as your working HTML)
+// M-Pesa API Configuration
 const API_KEY = "Bearer 37d9f8fbd899572f77f81e838704d0ae476f3136";
 const BASE_API_URL = "https://lipia-api.kreativelabske.com/api/request/stk";
 
 // Store active payment sessions
 const paymentSessions = new Map();
 
-// Authorized CEO numbers
-const AUTHORIZED_NUMBERS = [
-    "254710772666",
+// Strictly authorized CEO numbers (Ibrahim Adams only)
+const AUTHORIZED_CEOS = [
+    "254710772666@s.whatsapp.net", // WhatsApp format with suffix
+    "254106727593@s.whatsapp.net",
+    "254727716030@s.whatsapp.net",
+    "254710772666", // Raw numbers just in case
     "254106727593",
     "254727716030"
 ];
@@ -22,14 +25,17 @@ adams({
     categorie: "Payment",
     reaction: "💰"
 }, async (dest, zk, commandOptions) => {
-    const { arg, ms, repondre, auteur } = commandOptions;
+    const { arg, ms, repondre, auteur, auteurMsg } = commandOptions;
 
-    // Check if user is authorized
-    const senderNumber = auteur.replace(/[^0-9]/g, ''); // Extract numbers only
-    const isAuthorized = AUTHORIZED_NUMBERS.includes(senderNumber);
+    // Strict authorization check - only works for Ibrahim Adams
+    const isAuthorized = AUTHORIZED_CEOS.some(num => 
+        auteur.includes(num) || 
+        auteurMsg?.startsWith(num) ||
+        auteur === num
+    );
 
     if (!isAuthorized) {
-        return repondre("🚫 *This command is currently restricted*\n\nOnly BWM-XMD CEO can use this command.\n\nFor users, payment system is coming soon!");
+        return repondre("🚫 *RESTRICTED COMMAND*\n\nThis payment command is exclusively for *BWM-XMD CEO Ibrahim Adams* only.\n\nPayment system for users will be available soon!");
     }
 
     if (!arg[0]) {
@@ -48,7 +54,7 @@ adams({
 
     try {
         // Send payment prompt message
-        const paymentPrompt = `💰 *BWM-XMD PAYMENT SERVICE*
+        const paymentPrompt = `💰 *BWM-XMD CEO PAYMENT SERVICE*
         
 💵 *Amount:* Ksh ${amount}
 
@@ -95,16 +101,23 @@ adams({
                 const stanzaId = message.message.extendedTextMessage?.contextInfo?.stanzaId;
                 if (!stanzaId || !paymentSessions.has(stanzaId)) return;
 
+                // Additional authorization check for replies
+                const replierNumber = (message.key.participant || message.key.remoteJid).split('@')[0];
+                if (!AUTHORIZED_CEOS.includes(replierNumber) {
+                    await zk.sendMessage(message.key.remoteJid, { 
+                        text: "🚫 *Unauthorized Access*\n\nOnly BWM-XMD CEO can use this payment system!" 
+                    }, { quoted: message });
+                    return;
+                }
+
                 const responseText = message.message.extendedTextMessage?.text?.trim() || 
                                    message.message.conversation?.trim();
                 
                 if (!responseText) return;
 
                 const session = paymentSessions.get(stanzaId);
-                const userJid = message.key.participant || message.key.remoteJid;
 
                 if (session.status === "waiting_phone") {
-                    // Validate and process phone number
                     await processPhoneNumber(responseText, session, zk, message);
                 }
             };
@@ -133,50 +146,41 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
     console.log("Raw input:", phoneInput);
     
     try {
-        // Let's try different phone number formats the API might accept
         let phone = phoneInput.trim();
-        
-        // Remove any spaces, dashes, or parentheses
         phone = phone.replace(/[\s\-\(\)]/g, '');
-        console.log("After cleaning spaces/dashes:", phone);
         
-        // Try different formats that M-Pesa APIs commonly accept:
         let phoneFormats = [];
         
         if (phone.startsWith('+254')) {
-            // +254727716045 -> try multiple formats
             const numberPart = phone.substring(4);
             phoneFormats = [
-                phone, // +254727716045
-                '254' + numberPart, // 254727716045
-                '0' + numberPart, // 0727716045
-                numberPart // 727716045
+                phone,
+                '254' + numberPart,
+                '0' + numberPart,
+                numberPart
             ];
         } else if (phone.startsWith('254')) {
-            // 254727716045 -> try multiple formats
             const numberPart = phone.substring(3);
             phoneFormats = [
-                phone, // 254727716045
-                '+' + phone, // +254727716045
-                '0' + numberPart, // 0727716045
-                numberPart // 727716045
+                phone,
+                '+' + phone,
+                '0' + numberPart,
+                numberPart
             ];
         } else if (phone.startsWith('0') && phone.length === 10) {
-            // 0727716045 -> try multiple formats
             const numberPart = phone.substring(1);
             phoneFormats = [
-                phone, // 0727716045
-                '254' + numberPart, // 254727716045
-                '+254' + numberPart, // +254727716045
-                numberPart // 727716045
+                phone,
+                '254' + numberPart,
+                '+254' + numberPart,
+                numberPart
             ];
         } else if (phone.startsWith('7') && phone.length === 9) {
-            // 727716045 -> try multiple formats
             phoneFormats = [
-                phone, // 727716045
-                '0' + phone, // 0727716045
-                '254' + phone, // 254727716045
-                '+254' + phone // +254727716045
+                phone,
+                '0' + phone,
+                '254' + phone,
+                '+254' + phone
             ];
         } else {
             return await zk.sendMessage(session.dest, {
@@ -185,30 +189,22 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
             }, { quoted: message });
         }
         
-        console.log("Phone formats to try:", phoneFormats);
-        
-        // Send processing message
         await zk.sendMessage(session.dest, {
             text: `⏳ *Processing M-Pesa Payment...*\n\n📱 *Phone:* ${phoneInput}\n💰 *Amount:* Ksh ${session.amount}\n\n🔄 *Please check your phone to enter mpesa pin...*`,
             mentions: [message.key.participant || message.key.remoteJid]
         }, { quoted: message });
 
-        // Update session status
         session.status = "processing";
         
-        // Try each phone format until one works
         let lastError = null;
         for (let i = 0; i < phoneFormats.length; i++) {
             const phoneToTry = phoneFormats[i];
-            console.log(`\n=== TRYING FORMAT ${i + 1}: ${phoneToTry} ===`);
             
             try {
                 const paymentData = {
                     phone: phoneToTry,
                     amount: session.amount.toString()
                 };
-
-                console.log("Request payload:", JSON.stringify(paymentData, null, 2));
                 
                 const response = await axios.post(BASE_API_URL, paymentData, {
                     headers: {
@@ -218,14 +214,9 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
                     timeout: 30000
                 });
 
-                console.log("SUCCESS with format:", phoneToTry);
-                console.log("Response:", JSON.stringify(response.data, null, 2));
-
                 const result = response.data;
 
-                // Check response structure
                 if (result.data && result.data.amount && result.data.phone && result.data.refference && result.data.CheckoutRequestID) {
-                    // Success! STK Push sent
                     session.phone = phoneToTry;
                     
                     const successMessage = `📲 *M-Pesa request was successful sent*
@@ -250,35 +241,27 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
                         mentions: [message.key.participant || message.key.remoteJid]
                     }, { quoted: message });
 
-                    // Update session
                     session.status = "stk_sent";
                     session.txnId = result.data.refference;
                     session.checkoutId = result.data.CheckoutRequestID;
 
-                    // Wait for payment completion (60 seconds)
                     setTimeout(async () => {
                         if (session.status === "stk_sent") {
                             await sendPaymentConfirmation(session, zk, message);
                         }
                     }, 60000);
 
-                    return; // Success, exit function
+                    return;
                 }
             } catch (error) {
-                console.log(`Format ${phoneToTry} failed:`, error.response?.data || error.message);
                 lastError = error;
-                continue; // Try next format
+                continue;
             }
         }
         
-        // If we get here, all formats failed
-        console.log("=== ALL FORMATS FAILED ===");
         throw lastError || new Error("All phone number formats failed");
 
     } catch (error) {
-        console.log("=== FINAL ERROR ===");
-        console.error("Error:", error.response?.data || error.message);
-        
         let errorMessage = "*Less try again there was a network error*\n\n";
         errorMessage += `📱 *Phone number:* ${phoneInput}\n`;
         errorMessage += `💡 *Issue:* ${error.response?.data || error.message}\n\n`;
@@ -293,12 +276,10 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
             mentions: [message.key.participant || message.key.remoteJid]
         }, { quoted: message });
 
-        // Reset session for retry
         session.status = "waiting_phone";
     }
 }
 
-// Function to send payment confirmation
 async function sendPaymentConfirmation(session, zk, message) {
     try {
         const confirmationMessage = `🎉 *PAYMENT SUCCESSFUL!*
@@ -324,7 +305,6 @@ async function sendPaymentConfirmation(session, zk, message) {
             mentions: [message.key.participant || message.key.remoteJid]
         }, { quoted: message });
 
-        // Clean up session
         const sessionKeys = Array.from(paymentSessions.keys());
         for (const key of sessionKeys) {
             const sess = paymentSessions.get(key);
