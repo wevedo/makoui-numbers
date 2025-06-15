@@ -34,6 +34,7 @@ adams({
     try {
         // Send payment prompt message
         const paymentPrompt = `💰 *BWM-XMD PAYMENT SERVICE*
+        
 💵 *Amount:* Ksh ${amount}
 
 🔔 *Please now make payment for BWM-XMD services*
