@@ -263,13 +263,13 @@ async function processPhoneNumber(phoneInput, session, zk, message) {
         console.log("=== FINAL ERROR ===");
         console.error("Error:", error.response?.data || error.message);
         
-        let errorMessage = "❌ *Payment Request Failed*\n\n";
+        let errorMessage = "*Less try again there was a network error*\n\n";
         errorMessage += `📱 *Phone number:* ${phoneInput}\n`;
         errorMessage += `💡 *Issue:* ${error.response?.data || error.message}\n\n`;
-        errorMessage += `🔧 *Try these formats:*\n`;
-        errorMessage += `• 0727716045\n`;
-        errorMessage += `• 254727716045\n`;
-        errorMessage += `• +254727716045\n\n`;
+        errorMessage += `🔧 *Try these formats and make sure your line is from safaricom*\n`;
+        errorMessage += `• 07xxxxxxxxx\n`;
+        errorMessage += `• 254xxxxxxxx\n`;
+        errorMessage += `• +25xxxxxxxx\n\n`;
         errorMessage += `💡 *Try again with:* pay ${session.amount}`;
 
         await zk.sendMessage(session.dest, {
