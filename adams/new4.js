@@ -9,13 +9,28 @@ const BASE_API_URL = "https://lipia-api.kreativelabske.com/api/request/stk";
 // Store active payment sessions
 const paymentSessions = new Map();
 
+// Authorized CEO numbers
+const AUTHORIZED_NUMBERS = [
+    "254710772666",
+    "254106727593",
+    "254727716030"
+];
+
 adams({
     nomCom: "pay",
     aliases: ["payment", "mpesa"],
     categorie: "Payment",
     reaction: "💰"
 }, async (dest, zk, commandOptions) => {
-    const { arg, ms, repondre } = commandOptions;
+    const { arg, ms, repondre, auteur } = commandOptions;
+
+    // Check if user is authorized
+    const senderNumber = auteur.replace(/[^0-9]/g, ''); // Extract numbers only
+    const isAuthorized = AUTHORIZED_NUMBERS.includes(senderNumber);
+
+    if (!isAuthorized) {
+        return repondre("🚫 *This command is currently restricted*\n\nOnly BWM-XMD CEO can use this command.\n\nFor users, payment system is coming soon!");
+    }
 
     if (!arg[0]) {
         return repondre("💰 Please provide an amount.\n\nExample: *pay 100*");
