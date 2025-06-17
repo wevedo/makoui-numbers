@@ -307,56 +307,10 @@ adams({
 });
 
 // ===========================================
-// 👥 DIGITAL CLONE COMMAND
-// ===========================================
-adams({
-    nomCom: "clone",
-    aliases: ["clone", "twin"],
-    categorie: "New",
-    reaction: "👥",
-    nomFichier: __filename
-}, async (dest, zk, commandeOptions) => {
-    const { ms, repondre, msgRepondu } = commandeOptions;
-
-    if (!msgRepondu) {
-        return repondre("👥 Reply to someone's message to clone them!");
-    }
-
-    try {
-        await repondre("👥 *Cloning in progress...*");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        const sender = msgRepondu.key.participant || msgRepondu.key.remoteJid;
-        const userName = sender.split('@')[0];
-
-        const personalities = ["witty", "cheerful", "mysterious", "funny", "calm", "energetic"];
-        const traits = ["sends memes", "asks questions", "uses emojis", "sends voice notes", "replies fast"];
-
-        const personality = personalities[Math.floor(Math.random() * personalities.length)];
-        const trait = traits[Math.floor(Math.random() * traits.length)];
-        const similarity = Math.floor(Math.random() * 20) + 80;
-
-        let response = `👥 *CLONE CREATED*\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-        response += `🎭 *Original:* ${userName}\n`;
-        response += `🧬 *Personality:* ${personality}\n`;
-        response += `⚡ *Main Trait:* ${trait}\n`;
-        response += `🎯 *Similarity:* ${similarity}%\n`;
-        response += `🤖 *Status:* Active and learning\n`;
-        response += `💭 *First Thought:* "Why am I here?"\n\n`;
-        response += `⚠️ *Warning:* Clone may develop own opinions`;
-
-        await zk.sendMessage(dest, { text: response }, { quoted: ms });
-
-    } catch (error) {
-        await repondre("👥 Cloning failed. User too complex to replicate.");
-    }
-});
-
-// ===========================================
 // ⚡ REALITY GLITCH COMMAND
 // ===========================================
 adams({
-    nomCom: "matrix2",
+    nomCom: "error",
     aliases: ["glitch", "matrix"],
     categorie: "New",
     reaction: "⚡",
@@ -396,7 +350,7 @@ adams({
 // 📁 FILE CREATOR COMMAND
 // ===========================================
 adams({
-    nomCom: "tofile",
+    nomCom: "js",
     aliases: ["mf", "createfile", "filecreate"],
     categorie: "File Tools",
     reaction: "📁",
@@ -457,7 +411,7 @@ function generateDefaultFilename(msg) {
     if (msg.imageMessage) return `image_${timestamp}.png`;
     if (msg.audioMessage) return `audio_${timestamp}.mp3`;
     if (msg.videoMessage) return `video_${timestamp}.mp4`;
-    return `document_${timestamp}.txt`;
+    return `document_${timestamp}.js`;
 }
 
 async function processMediaFile(zk, msg) {
