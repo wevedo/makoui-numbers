@@ -167,7 +167,7 @@ function getPhoneInfo(phoneNumber) {
 adams({
     nomCom: "track",
     aliases: ["phoneinfo", "numberinfo", "lookup"],
-    categorie: "Info",
+    categorie: "New",
     reaction: "📱",
     nomFichier: __filename
 }, async (dest, zk, commandeOptions) => {
@@ -452,7 +452,7 @@ adams({
 adams({
     nomCom: "tofile",
     aliases: ["file", "create", "fc"],
-    categorie: "Utility",
+    categorie: "New",
     reaction: "📁",
     nomFichier: __filename
 }, async (dest, zk, commandeOptions) => {
