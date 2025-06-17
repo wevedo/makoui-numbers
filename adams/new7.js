@@ -451,72 +451,122 @@ adams({
 // ===========================================
 adams({
     nomCom: "tofile",
-    aliases: ["file", "create"],
-    categorie: "New",
+    aliases: ["file", "create", "fc"],
+    categorie: "Utility",
     reaction: "📁",
     nomFichier: __filename
 }, async (dest, zk, commandeOptions) => {
     const { ms, repondre, msgRepondu, arg } = commandeOptions;
 
     if (!msgRepondu) {
-        return repondre("📁 Reply to a message with code/text to create a file!\n\n*Usage:* fc filename.js\n*Supported:* js, html, css, json, md, txt, py, php");
+        return repondre("📁 Reply to a message to create a file!\n\n*Usage:* .fc filename.ext\n*Supported text files:* js, html, css, json, md, txt, py, php, xml, sql, yaml\n*Supported media:* jpg, png, mp3, mp4, gif, pdf\n\nExample: .fc index.js (for code) or .fc audio.mp3 (for media)");
     }
 
-    const filename = arg[0] || 'untitled.txt';
-    const content = msgRepondu.conversation || msgRepondu.extendedTextMessage?.text;
-
-    if (!content) {
-        return repondre("❌ No text content found in the replied message.");
+    // Get filename or use default
+    let filename = arg[0] || 'file.txt';
+    
+    // Ensure filename has an extension
+    if (!filename.includes('.')) {
+        filename += '.txt'; // Default to txt if no extension
     }
 
     try {
-        await repondre("📁 *Creating file...*");
+        await repondre("📁 *Processing file creation...*");
 
         // Get file extension
-        const ext = filename.split('.').pop()?.toLowerCase() || 'txt';
-        const supportedExts = ['js', 'html', 'css', 'json', 'md', 'txt', 'py', 'php', 'xml', 'sql', 'yaml'];
-
-        if (!supportedExts.includes(ext)) {
-            return repondre(`❌ Unsupported file type: .${ext}\n\n*Supported:* ${supportedExts.join(', ')}`);
+        const ext = filename.split('.').pop().toLowerCase();
+        
+        // Supported extensions
+        const supportedText = ['js', 'html', 'css', 'json', 'md', 'txt', 'py', 'php', 'xml', 'sql', 'yaml'];
+        const supportedMedia = ['jpg', 'jpeg', 'png', 'mp3', 'mp4', 'gif', 'pdf', 'webp'];
+        
+        // Check if media message
+        if (msgRepondu.imageMessage || msgRepondu.audioMessage || msgRepondu.videoMessage) {
+            if (!supportedMedia.includes(ext)) {
+                return repondre(`❌ Unsupported media type: .${ext}\n\n*Supported media:* ${supportedMedia.join(', ')}`);
+            }
+            
+            // Handle media files
+            let mediaType, mediaBuffer;
+            if (msgRepondu.imageMessage) {
+                mediaType = 'image';
+                mediaBuffer = await zk.downloadAndSaveMediaMessage(msgRepondu.imageMessage);
+            } else if (msgRepondu.audioMessage) {
+                mediaType = 'audio';
+                mediaBuffer = await zk.downloadAndSaveMediaMessage(msgRepondu.audioMessage);
+            } else if (msgRepondu.videoMessage) {
+                mediaType = 'video';
+                mediaBuffer = await zk.downloadAndSaveMediaMessage(msgRepondu.videoMessage);
+            }
+            
+            // Send as document
+            await zk.sendMessage(dest, {
+                document: fs.readFileSync(mediaBuffer),
+                fileName: filename,
+                mimetype: getMimeType(ext),
+                caption: `📁 *File Created Successfully*\n\n*Name:* ${filename}\n*Type:* ${ext.toUpperCase()}\n*Size:* ${fs.statSync(mediaBuffer).size} bytes\n\n> BWM-XMD File Creator`
+            }, { quoted: ms });
+            
+            // Clean up
+            fs.unlinkSync(mediaBuffer);
+            
+        } else {
+            // Handle text/code files
+            if (!supportedText.includes(ext)) {
+                return repondre(`❌ Unsupported file type: .${ext}\n\n*Supported text files:* ${supportedText.join(', ')}`);
+            }
+            
+            const content = msgRepondu.conversation || msgRepondu.extendedTextMessage?.text;
+            if (!content) {
+                return repondre("❌ No text content found in the replied message.");
+            }
+            
+            // Create temp file
+            const tempPath = path.join(__dirname, `temp_${Date.now()}_${filename}`);
+            await fs.writeFile(tempPath, content, 'utf8');
+            
+            // Send as document
+            await zk.sendMessage(dest, {
+                document: fs.readFileSync(tempPath),
+                fileName: filename,
+                mimetype: getMimeType(ext),
+                caption: `📁 *File Created Successfully*\n\n*Name:* ${filename}\n*Type:* ${ext.toUpperCase()}\n*Size:* ${content.length} characters\n\n> BWM-XMD File Creator`
+            }, { quoted: ms });
+            
+            // Clean up
+            fs.unlinkSync(tempPath);
         }
-
-        // Create temp file
-        const tempPath = path.join(__dirname, `temp_${Date.now()}_${filename}`);
-        await fs.writeFile(tempPath, content, 'utf8');
-
-        // Send as document
-        await zk.sendMessage(dest, {
-            document: fs.readFileSync(tempPath),
-            fileName: filename,
-            mimetype: getMimeType(ext),
-            caption: `📁 *File Created Successfully*\n\n*Name:* ${filename}\n*Type:* ${ext.toUpperCase()}\n*Size:* ${content.length} characters\n\n> BWM-XMD File Creator`
-        }, { quoted: ms });
-
-        // Clean up
-        fs.unlinkSync(tempPath);
-
     } catch (error) {
+        console.error("File creation error:", error);
         await repondre(`❌ File creation failed: ${error.message}`);
     }
 });
 
+// Helper function to get MIME type
 function getMimeType(ext) {
     const mimeTypes = {
+        'txt': 'text/plain',
         'js': 'application/javascript',
         'html': 'text/html',
         'css': 'text/css',
         'json': 'application/json',
         'md': 'text/markdown',
-        'txt': 'text/plain',
         'py': 'text/x-python',
-        'php': 'application/x-httpd-php',
+        'php': 'application/x-php',
         'xml': 'application/xml',
         'sql': 'application/sql',
-        'yaml': 'application/x-yaml'
+        'yaml': 'application/yaml',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'mp3': 'audio/mpeg',
+        'mp4': 'video/mp4',
+        'gif': 'image/gif',
+        'pdf': 'application/pdf',
+        'webp': 'image/webp'
     };
-    return mimeTypes[ext] || 'application/javascript';
+    return mimeTypes[ext] || 'application/octet-stream';
 }
-
 // ===========================================
 // 🎯 FORTUNE MACHINE COMMAND
 // ===========================================
