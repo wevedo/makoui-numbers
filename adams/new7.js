@@ -1,431 +1,252 @@
 const { adams } = require("../Ibrahim/adams");
 const axios = require("axios");
 
-// ================================
-// GLOBAL PHONE TRACKER - REPLY MODE
-// ================================
-
-const globalCountries = {
-    "1": { name: "United States/Canada", flag: "🇺🇸🇨🇦", region: "North America", carriers: ["Verizon", "AT&T", "T-Mobile", "Rogers", "Bell"] },
-    "44": { name: "United Kingdom", flag: "🇬🇧", region: "Europe", carriers: ["EE", "O2", "Vodafone", "Three"] },
-    "33": { name: "France", flag: "🇫🇷", region: "Europe", carriers: ["Orange", "SFR", "Bouygues", "Free"] },
-    "49": { name: "Germany", flag: "🇩🇪", region: "Europe", carriers: ["Deutsche Telekom", "Vodafone", "O2"] },
-    "39": { name: "Italy", flag: "🇮🇹", region: "Europe", carriers: ["TIM", "Vodafone", "WindTre"] },
-    "34": { name: "Spain", flag: "🇪🇸", region: "Europe", carriers: ["Movistar", "Vodafone", "Orange"] },
-    "31": { name: "Netherlands", flag: "🇳🇱", region: "Europe", carriers: ["KPN", "VodafoneZiggo", "T-Mobile"] },
-    "7": { name: "Russia", flag: "🇷🇺", region: "Europe/Asia", carriers: ["MTS", "Beeline", "MegaFon"] },
-    "86": { name: "China", flag: "🇨🇳", region: "Asia", carriers: ["China Mobile", "China Unicom", "China Telecom"] },
-    "91": { name: "India", flag: "🇮🇳", region: "Asia", carriers: ["Jio", "Airtel", "Vi", "BSNL"] },
-    "81": { name: "Japan", flag: "🇯🇵", region: "Asia", carriers: ["NTT DoCoMo", "SoftBank", "au"] },
-    "82": { name: "South Korea", flag: "🇰🇷", region: "Asia", carriers: ["SK Telecom", "KT", "LG U+"] },
-    "65": { name: "Singapore", flag: "🇸🇬", region: "Asia", carriers: ["Singtel", "StarHub", "M1"] },
-    "60": { name: "Malaysia", flag: "🇲🇾", region: "Asia", carriers: ["Maxis", "Celcom", "Digi"] },
-    "66": { name: "Thailand", flag: "🇹🇭", region: "Asia", carriers: ["AIS", "dtac", "TrueMove"] },
-    "84": { name: "Vietnam", flag: "🇻🇳", region: "Asia", carriers: ["Viettel", "VinaPhone", "MobiFone"] },
-    "62": { name: "Indonesia", flag: "🇮🇩", region: "Asia", carriers: ["Telkomsel", "Indosat", "XL Axiata"] },
-    "63": { name: "Philippines", flag: "🇵🇭", region: "Asia", carriers: ["Globe", "Smart", "DITO"] },
-    "92": { name: "Pakistan", flag: "🇵🇰", region: "Asia", carriers: ["Jazz", "Telenor", "Zong"] },
-    "94": { name: "Sri Lanka", flag: "🇱🇰", region: "Asia", carriers: ["Dialog", "Mobitel", "Hutch"] },
-    "880": { name: "Bangladesh", flag: "🇧🇩", region: "Asia", carriers: ["Grameenphone", "Robi", "Banglalink"] },
-    "966": { name: "Saudi Arabia", flag: "🇸🇦", region: "Asia", carriers: ["STC", "Mobily", "Zain"] },
-    "971": { name: "UAE", flag: "🇦🇪", region: "Asia", carriers: ["Etisalat", "du"] },
-    "90": { name: "Turkey", flag: "🇹🇷", region: "Europe/Asia", carriers: ["Turkcell", "Vodafone", "Türk Telekom"] },
-    "254": { name: "Kenya", flag: "🇰🇪", region: "Africa", carriers: ["Safaricom", "Airtel", "Telkom"] },
-    "234": { name: "Nigeria", flag: "🇳🇬", region: "Africa", carriers: ["MTN", "Airtel", "Glo", "9mobile"] },
-    "27": { name: "South Africa", flag: "🇿🇦", region: "Africa", carriers: ["Vodacom", "MTN", "Cell C"] },
-    "20": { name: "Egypt", flag: "🇪🇬", region: "Africa", carriers: ["Orange", "Vodafone", "Etisalat"] },
-    "212": { name: "Morocco", flag: "🇲🇦", region: "Africa", carriers: ["Maroc Telecom", "Orange", "inwi"] },
-    "233": { name: "Ghana", flag: "🇬🇭", region: "Africa", carriers: ["MTN", "Vodafone", "AirtelTigo"] },
-    "61": { name: "Australia", flag: "🇦🇺", region: "Oceania", carriers: ["Telstra", "Optus", "Vodafone"] },
-    "64": { name: "New Zealand", flag: "🇳🇿", region: "Oceania", carriers: ["Spark", "Vodafone", "2degrees"] },
-    "55": { name: "Brazil", flag: "🇧🇷", region: "South America", carriers: ["Vivo", "TIM", "Claro", "Oi"] },
-    "54": { name: "Argentina", flag: "🇦🇷", region: "South America", carriers: ["Movistar", "Claro", "Personal"] },
-    "52": { name: "Mexico", flag: "🇲🇽", region: "Central America", carriers: ["Telcel", "AT&T", "Movistar"] }
-};
-
-function analyzePhoneNumber(phoneNumber) {
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
+// Phone number validation and info extraction
+function getPhoneInfo(phoneNumber) {
+    // Clean the number
+    let cleanNumber = phoneNumber.replace(/[^\d+]/g, '');
     
-    for (let i = 4; i >= 1; i--) {
-        const code = cleanNumber.substring(0, i);
-        if (globalCountries[code]) {
-            const country = globalCountries[code];
-            const localNumber = cleanNumber.substring(i);
-            
-            return {
-                countryCode: code,
-                country: country.name,
-                flag: country.flag,
-                region: country.region,
-                carriers: country.carriers,
-                localNumber: localNumber,
-                fullNumber: `+${code} ${localNumber}`,
-                isValid: localNumber.length >= 8 && localNumber.length <= 12
-            };
+    // Country codes database (partial list)
+    const countryCodes = {
+        '1': { country: 'United States/Canada', region: 'North America' },
+        '7': { country: 'Russia/Kazakhstan', region: 'Europe/Asia' },
+        '20': { country: 'Egypt', region: 'Africa' },
+        '27': { country: 'South Africa', region: 'Africa' },
+        '30': { country: 'Greece', region: 'Europe' },
+        '31': { country: 'Netherlands', region: 'Europe' },
+        '32': { country: 'Belgium', region: 'Europe' },
+        '33': { country: 'France', region: 'Europe' },
+        '34': { country: 'Spain', region: 'Europe' },
+        '36': { country: 'Hungary', region: 'Europe' },
+        '39': { country: 'Italy', region: 'Europe' },
+        '40': { country: 'Romania', region: 'Europe' },
+        '41': { country: 'Switzerland', region: 'Europe' },
+        '43': { country: 'Austria', region: 'Europe' },
+        '44': { country: 'United Kingdom', region: 'Europe' },
+        '45': { country: 'Denmark', region: 'Europe' },
+        '46': { country: 'Sweden', region: 'Europe' },
+        '47': { country: 'Norway', region: 'Europe' },
+        '48': { country: 'Poland', region: 'Europe' },
+        '49': { country: 'Germany', region: 'Europe' },
+        '51': { country: 'Peru', region: 'South America' },
+        '52': { country: 'Mexico', region: 'North America' },
+        '53': { country: 'Cuba', region: 'Caribbean' },
+        '54': { country: 'Argentina', region: 'South America' },
+        '55': { country: 'Brazil', region: 'South America' },
+        '56': { country: 'Chile', region: 'South America' },
+        '57': { country: 'Colombia', region: 'South America' },
+        '58': { country: 'Venezuela', region: 'South America' },
+        '60': { country: 'Malaysia', region: 'Asia' },
+        '61': { country: 'Australia', region: 'Oceania' },
+        '62': { country: 'Indonesia', region: 'Asia' },
+        '63': { country: 'Philippines', region: 'Asia' },
+        '64': { country: 'New Zealand', region: 'Oceania' },
+        '65': { country: 'Singapore', region: 'Asia' },
+        '66': { country: 'Thailand', region: 'Asia' },
+        '81': { country: 'Japan', region: 'Asia' },
+        '82': { country: 'South Korea', region: 'Asia' },
+        '84': { country: 'Vietnam', region: 'Asia' },
+        '86': { country: 'China', region: 'Asia' },
+        '90': { country: 'Turkey', region: 'Europe/Asia' },
+        '91': { country: 'India', region: 'Asia' },
+        '92': { country: 'Pakistan', region: 'Asia' },
+        '93': { country: 'Afghanistan', region: 'Asia' },
+        '94': { country: 'Sri Lanka', region: 'Asia' },
+        '95': { country: 'Myanmar', region: 'Asia' },
+        '98': { country: 'Iran', region: 'Asia' },
+        '212': { country: 'Morocco', region: 'Africa' },
+        '213': { country: 'Algeria', region: 'Africa' },
+        '216': { country: 'Tunisia', region: 'Africa' },
+        '218': { country: 'Libya', region: 'Africa' },
+        '220': { country: 'Gambia', region: 'Africa' },
+        '221': { country: 'Senegal', region: 'Africa' },
+        '222': { country: 'Mauritania', region: 'Africa' },
+        '223': { country: 'Mali', region: 'Africa' },
+        '224': { country: 'Guinea', region: 'Africa' },
+        '225': { country: 'Ivory Coast', region: 'Africa' },
+        '226': { country: 'Burkina Faso', region: 'Africa' },
+        '227': { country: 'Niger', region: 'Africa' },
+        '228': { country: 'Togo', region: 'Africa' },
+        '229': { country: 'Benin', region: 'Africa' },
+        '230': { country: 'Mauritius', region: 'Africa' },
+        '231': { country: 'Liberia', region: 'Africa' },
+        '232': { country: 'Sierra Leone', region: 'Africa' },
+        '233': { country: 'Ghana', region: 'Africa' },
+        '234': { country: 'Nigeria', region: 'Africa' },
+        '235': { country: 'Chad', region: 'Africa' },
+        '236': { country: 'Central African Republic', region: 'Africa' },
+        '237': { country: 'Cameroon', region: 'Africa' },
+        '238': { country: 'Cape Verde', region: 'Africa' },
+        '239': { country: 'São Tomé and Príncipe', region: 'Africa' },
+        '240': { country: 'Equatorial Guinea', region: 'Africa' },
+        '241': { country: 'Gabon', region: 'Africa' },
+        '242': { country: 'Republic of the Congo', region: 'Africa' },
+        '243': { country: 'Democratic Republic of the Congo', region: 'Africa' },
+        '244': { country: 'Angola', region: 'Africa' },
+        '245': { country: 'Guinea-Bissau', region: 'Africa' },
+        '246': { country: 'British Indian Ocean Territory', region: 'Africa' },
+        '248': { country: 'Seychelles', region: 'Africa' },
+        '249': { country: 'Sudan', region: 'Africa' },
+        '250': { country: 'Rwanda', region: 'Africa' },
+        '251': { country: 'Ethiopia', region: 'Africa' },
+        '252': { country: 'Somalia', region: 'Africa' },
+        '253': { country: 'Djibouti', region: 'Africa' },
+        '254': { country: 'Kenya', region: 'Africa', carriers: ['Safaricom', 'Airtel', 'Telkom'] },
+        '255': { country: 'Tanzania', region: 'Africa' },
+        '256': { country: 'Uganda', region: 'Africa' },
+        '257': { country: 'Burundi', region: 'Africa' },
+        '258': { country: 'Mozambique', region: 'Africa' },
+        '260': { country: 'Zambia', region: 'Africa' },
+        '261': { country: 'Madagascar', region: 'Africa' },
+        '262': { country: 'Réunion/Mayotte', region: 'Africa' },
+        '263': { country: 'Zimbabwe', region: 'Africa' },
+        '264': { country: 'Namibia', region: 'Africa' },
+        '265': { country: 'Malawi', region: 'Africa' },
+        '266': { country: 'Lesotho', region: 'Africa' },
+        '267': { country: 'Botswana', region: 'Africa' },
+        '268': { country: 'Eswatini', region: 'Africa' },
+        '269': { country: 'Comoros', region: 'Africa' },
+        '290': { country: 'Saint Helena', region: 'Africa' }
+    };
+
+    // Remove + if present
+    if (cleanNumber.startsWith('+')) {
+        cleanNumber = cleanNumber.substring(1);
+    }
+
+    // Find country code
+    let countryInfo = null;
+    let countryCode = '';
+    
+    // Try different country code lengths (1-3 digits)
+    for (let len = 1; len <= 3; len++) {
+        const code = cleanNumber.substring(0, len);
+        if (countryCodes[code]) {
+            countryInfo = countryCodes[code];
+            countryCode = code;
+            break;
         }
     }
-    
-    return null;
+
+    // Kenya specific analysis
+    let kenyanCarrier = '';
+    if (countryCode === '254') {
+        const networkCode = cleanNumber.substring(3, 5);
+        const networkCodes = {
+            '70': 'Safaricom',
+            '71': 'Safaricom', 
+            '72': 'Safaricom',
+            '74': 'Safaricom',
+            '75': 'Airtel',
+            '76': 'Safaricom',
+            '77': 'Telkom',
+            '78': 'Airtel',
+            '79': 'Safaricom',
+            '11': 'Safaricom',
+            '10': 'Safaricom'
+        };
+        kenyanCarrier = networkCodes[networkCode] || 'Unknown Carrier';
+    }
+
+    return {
+        original: phoneNumber,
+        cleaned: cleanNumber,
+        countryCode: countryCode,
+        country: countryInfo?.country || 'Unknown',
+        region: countryInfo?.region || 'Unknown',
+        carrier: kenyanCarrier,
+        isValid: countryInfo !== null,
+        format: countryCode ? `+${countryCode} ${cleanNumber.substring(countryCode.length)}` : cleanNumber
+    };
 }
 
-function extractPhoneFromJid(jid) {
-    const phoneMatch = jid.match(/(\d+)/);
-    return phoneMatch ? phoneMatch[1] : null;
-}
-
-// Track command - can use number or reply to message
 adams({
     nomCom: "track",
-    aliases: ["tr"],
-    categorie: "New",
-    reaction: "🌍"
-}, async (dest, zk, commandOptions) => {
-    const { arg, repondre, ms } = commandOptions;
+    aliases: ["phoneinfo", "numberinfo", "lookup"],
+    categorie: "Info",
+    reaction: "📱",
+    nomFichier: __filename
+}, async (dest, zk, commandeOptions) => {
+    const { ms, repondre, arg, msgRepondu } = commandeOptions;
 
-    let phoneNumber = null;
+    let phoneNumber = '';
 
     // Check if replying to a message
-    if (ms.quoted) {
-        const quotedJid = ms.quoted.key.participant || ms.quoted.key.remoteJid;
-        phoneNumber = extractPhoneFromJid(quotedJid);
-    }
-    
-    // If no reply or no phone from reply, check arguments
-    if (!phoneNumber && arg[0]) {
-        phoneNumber = arg.join("").replace(/\s+/g, "");
-    }
-
-    if (!phoneNumber) {
-        return repondre(`🌍 *GLOBAL PHONE TRACKER*
-
-📱 Usage: 
-• track +1234567890
-• Reply to any message + type "track"
-
-*Examples:*
-• track +254712345678  
-• track +44123456789
-
-💡 Works with all countries!`);
+    if (msgRepondu && !arg[0]) {
+        // Extract number from quoted message sender
+        const quotedSender = ms.message?.extendedTextMessage?.contextInfo?.participant;
+        if (quotedSender) {
+            phoneNumber = quotedSender.split('@')[0];
+        } else {
+            return repondre("❌ Could not extract phone number from the replied message.");
+        }
+    } else if (arg[0]) {
+        // Manual number input
+        phoneNumber = arg.join('');
+    } else {
+        return repondre("📱 *PHONE NUMBER TRACKER*\n\n*Usage:*\n• Reply to a message: `track`\n• Manual lookup: `track 254727716045`\n\n*Example:* track +1234567890");
     }
 
     try {
-        const analysis = analyzePhoneNumber(phoneNumber);
+        await repondre("🔍 *Analyzing phone number...*\n\nPlease wait while I gather information...");
+
+        const phoneInfo = getPhoneInfo(phoneNumber);
+
+        if (!phoneInfo.isValid) {
+            return repondre(`❌ *Invalid Phone Number*\n\n*Number:* ${phoneNumber}\n\nPlease provide a valid international phone number.`);
+        }
+
+        let responseText = "📱 *PHONE NUMBER ANALYSIS*\n";
+        responseText += "━━━━━━━━━━━━━━━━━━━━━━\n\n";
         
-        if (!analysis) {
-            return repondre(`❌ Could not identify phone number: ${phoneNumber}
+        responseText += "📋 *BASIC INFORMATION*\n";
+        responseText += `*Original:* ${phoneInfo.original}\n`;
+        responseText += `*Formatted:* ${phoneInfo.format}\n`;
+        responseText += `*Country Code:* +${phoneInfo.countryCode}\n`;
+        responseText += `*Country:* ${phoneInfo.country}\n`;
+        responseText += `*Region:* ${phoneInfo.region}\n`;
 
-Please provide a valid international format.
-Example: +1234567890`);
+        if (phoneInfo.carrier) {
+            responseText += `*Carrier:* ${phoneInfo.carrier}\n`;
         }
 
-        const result = `🌍 *PHONE TRACKER RESULTS*
+        responseText += "\n🌍 *LOCATION INFORMATION*\n";
+        responseText += `*Country:* ${phoneInfo.country}\n`;
+        responseText += `*Continent:* ${phoneInfo.region}\n`;
 
-📱 *Number:* ${analysis.fullNumber}
-${analysis.flag} *Country:* ${analysis.country}
-🗺️ *Region:* ${analysis.region}
-🏷️ *Code:* +${analysis.countryCode}
-✅ *Valid:* ${analysis.isValid ? "Yes" : "No"}
-
-🏢 *Major Carriers:*
-${analysis.carriers.map(carrier => `• ${carrier}`).join('\n')}
-
-⚡ *BWM XMD Global Tracker*`;
-
-        await repondre(result);
-
-    } catch (error) {
-        console.error("Phone tracking error:", error);
-        return repondre("❌ Error analyzing phone number. Please try again.");
-    }
-});
-
-// ================================
-// FILE CREATOR - REPLY MODE
-// ================================
-
-const githubFormats = {
-    "mp3": { mime: "audio/mpeg", ext: ".mp3", desc: "Audio file", icon: "🎵" },
-    "mp4": { mime: "video/mp4", ext: ".mp4", desc: "Video file", icon: "🎥" },
-    "js": { mime: "text/javascript", ext: ".js", desc: "JavaScript", icon: "📜" },
-    "html": { mime: "text/html", ext: ".html", desc: "HTML file", icon: "🌐" },
-    "json": { mime: "application/json", ext: ".json", desc: "JSON file", icon: "📋" }
-};
-
-function createFileContent(text, format) {
-    const timestamp = new Date().toISOString();
-    
-    switch (format) {
-        case "js":
-            return `// Generated by BWM XMD
-// Created: ${timestamp}
-
-const content = \`${text.replace(/`/g, '\\`')}\`;
-
-console.log(content);
-
-module.exports = {
-    content: content,
-    timestamp: "${timestamp}",
-    generator: "BWM XMD"
-};`;
-
-        case "html":
-            return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BWM XMD Generated File</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 20px;
-            line-height: 1.6;
+        // Add Kenya-specific details
+        if (phoneInfo.countryCode === '254') {
+            responseText += `*Time Zone:* EAT (UTC+3)\n`;
+            responseText += `*Currency:* Kenyan Shilling (KES)\n`;
+            responseText += `*Language:* English, Swahili\n`;
         }
-        .header { 
-            background: #f4f4f4; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 20px;
-        }
-        .content { 
-            background: #f9f9f9; 
-            padding: 15px; 
-            border-radius: 8px;
-            white-space: pre-wrap;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>BWM XMD Generated Content</h1>
-        <p><strong>Created:</strong> ${new Date(timestamp).toLocaleString()}</p>
-        <p><strong>Generator:</strong> BWM XMD File Creator</p>
-    </div>
-    <div class="content">${text.replace(/\n/g, '<br>')}</div>
-</body>
-</html>`;
 
-        case "json":
-            return JSON.stringify({
-                content: text,
-                metadata: {
-                    created: timestamp,
-                    generator: "BWM XMD",
-                    format: "json",
-                    version: "1.0"
-                }
-            }, null, 2);
-
-        default:
-            return text;
-    }
-}
-
-// JavaScript file creator
-adams({
-    nomCom: "js",
-    categorie: "New",
-    reaction: "📜"
-}, async (dest, zk, commandOptions) => {
-    const { repondre, ms } = commandOptions;
-
-    if (!ms.quoted) {
-        return repondre("❌ Reply to a message to convert it to JavaScript file");
-    }
-
-    try {
-        const quotedText = ms.quoted.message?.conversation || 
-                          ms.quoted.message?.extendedTextMessage?.text || 
-                          "No text content";
-
-        const filename = `bwm_${Date.now()}.js`;
-        const fileContent = createFileContent(quotedText, "js");
-        const fileBuffer = Buffer.from(fileContent, 'utf8');
+        responseText += "\n⚠️ *PRIVACY NOTICE*\n";
+        responseText += "This shows only publicly available information.\n";
+        responseText += "No personal data or exact location is accessed.\n";
+        
+        responseText += "\n━━━━━━━━━━━━━━━━━━━━━━\n";
+        responseText += "> © BWM-XMD Phone Tracker";
 
         await zk.sendMessage(dest, {
-            document: fileBuffer,
-            fileName: filename,
-            mimetype: githubFormats.js.mime,
-            caption: `📜 *JavaScript File Created*
-
-📁 ${filename}
-📊 ${fileBuffer.length} bytes
-✅ GitHub ready!
-
-*Content:* ${quotedText.substring(0, 50)}${quotedText.length > 50 ? '...' : ''}`
+            text: responseText,
+            contextInfo: {
+                externalAdReply: {
+                    title: `📱 ${phoneInfo.country} Phone Number`,
+                    body: `${phoneInfo.format} • ${phoneInfo.carrier || 'Carrier Unknown'}`,
+                    mediaType: 1,
+                    thumbnailUrl: "https://files.catbox.moe/sd49da.jpg",
+                    sourceUrl: "https://bwmxmd.online",
+                    renderLargerThumbnail: false,
+                    showAdAttribution: true,
+bbbb                }
+            }
         }, { quoted: ms });
 
     } catch (error) {
-        console.error("JS file creation error:", error);
-        return repondre("❌ Error creating JavaScript file");
+        console.error("Error in track command:", error);
+        await repondre(`❌ *Analysis Failed*\n\nError: ${error.message}\n\nPlease try again with a valid phone number.`);
     }
 });
 
-// HTML file creator
-adams({
-    nomCom: "html",
-    categorie: "New", 
-    reaction: "🌐"
-}, async (dest, zk, commandOptions) => {
-    const { repondre, ms } = commandOptions;
 
-    if (!ms.quoted) {
-        return repondre("❌ Reply to a message to convert it to HTML file");
-    }
-
-    try {
-        const quotedText = ms.quoted.message?.conversation || 
-                          ms.quoted.message?.extendedTextMessage?.text || 
-                          "No text content";
-
-        const filename = `bwm_${Date.now()}.html`;
-        const fileContent = createFileContent(quotedText, "html");
-        const fileBuffer = Buffer.from(fileContent, 'utf8');
-
-        await zk.sendMessage(dest, {
-            document: fileBuffer,
-            fileName: filename,
-            mimetype: githubFormats.html.mime,
-            caption: `🌐 *HTML File Created*
-
-📁 ${filename}
-📊 ${fileBuffer.length} bytes
-✅ GitHub ready!
-
-*Content:* ${quotedText.substring(0, 50)}${quotedText.length > 50 ? '...' : ''}`
-        }, { quoted: ms });
-
-    } catch (error) {
-        console.error("HTML file creation error:", error);
-        return repondre("❌ Error creating HTML file");
-    }
-});
-
-// JSON file creator
-adams({
-    nomCom: "json",
-    categorie: "New",
-    reaction: "📋" 
-}, async (dest, zk, commandOptions) => {
-    const { repondre, ms } = commandOptions;
-
-    if (!ms.quoted) {
-        return repondre("❌ Reply to a message to convert it to JSON file");
-    }
-
-    try {
-        const quotedText = ms.quoted.message?.conversation || 
-                          ms.quoted.message?.extendedTextMessage?.text || 
-                          "No text content";
-
-        const filename = `bwm_${Date.now()}.json`;
-        const fileContent = createFileContent(quotedText, "json");
-        const fileBuffer = Buffer.from(fileContent, 'utf8');
-
-        await zk.sendMessage(dest, {
-            document: fileBuffer,
-            fileName: filename,
-            mimetype: githubFormats.json.mime,
-            caption: `📋 *JSON File Created*
-
-📁 ${filename}
-📊 ${fileBuffer.length} bytes
-✅ GitHub ready!
-
-*Content:* ${quotedText.substring(0, 50)}${quotedText.length > 50 ? '...' : ''}`
-        }, { quoted: ms });
-
-    } catch (error) {
-        console.error("JSON file creation error:", error);
-        return repondre("❌ Error creating JSON file");
-    }
-});
-
-// MP3 file creator (from audio messages)
-adams({
-    nomCom: "mp3",
-    categorie: "New",
-    reaction: "🎵"
-}, async (dest, zk, commandOptions) => {
-    const { repondre, ms } = commandOptions;
-
-    if (!ms.quoted) {
-        return repondre("❌ Reply to an audio message to convert it to MP3 file");
-    }
-
-    try {
-        if (!ms.quoted.message.audioMessage) {
-            return repondre("❌ Please reply to an audio message");
-        }
-
-        const audioBuffer = await zk.downloadMediaMessage(ms.quoted);
-        const filename = `bwm_audio_${Date.now()}.mp3`;
-        const fileSize = (audioBuffer.length / 1024).toFixed(1);
-
-        await zk.sendMessage(dest, {
-            document: audioBuffer,
-            fileName: filename,
-            mimetype: githubFormats.mp3.mime,
-            caption: `🎵 *MP3 File Created*
-
-📁 ${filename}
-📊 ${fileSize} KB
-✅ GitHub ready!
-
-*Converted from audio message*`
-        }, { quoted: ms });
-
-    } catch (error) {
-        console.error("MP3 file creation error:", error);
-        return repondre("❌ Error creating MP3 file");
-    }
-});
-
-// MP4 file creator (from video messages)
-adams({
-    nomCom: "mp4",
-    categorie: "New",
-    reaction: "🎥"
-}, async (dest, zk, commandOptions) => {
-    const { repondre, ms } = commandOptions;
-
-    if (!ms.quoted) {
-        return repondre("❌ Reply to a video message to convert it to MP4 file");
-    }
-
-    try {
-        if (!ms.quoted.message.videoMessage) {
-            return repondre("❌ Please reply to a video message");
-        }
-
-        const videoBuffer = await zk.downloadMediaMessage(ms.quoted);
-        const filename = `bwm_video_${Date.now()}.mp4`;
-        const fileSize = (videoBuffer.length / (1024 * 1024)).toFixed(1);
-
-        await zk.sendMessage(dest, {
-            document: videoBuffer,
-            fileName: filename,
-            mimetype: githubFormats.mp4.mime,
-            caption: `🎥 *MP4 File Created*
-
-📁 ${filename}
-📊 ${fileSize} MB
-✅ GitHub ready!
-
-*Converted from video message*`
-        }, { quoted: ms });
-
-    } catch (error) {
-        console.error("MP4 file creation error:", error);
-        return repondre("❌ Error creating MP4 file");
-    }
-});
-
-console.log("✅ BWM XMD Reply System Loaded:");
-console.log("🌍 Phone Tracker - Reply or type number");
-console.log("📁 File Creators - js, html, json, mp3, mp4");
-console.log("💡 Just reply to any message and type the command!");
