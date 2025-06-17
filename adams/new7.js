@@ -7,7 +7,7 @@ const path = require('path');
 adams({
     nomCom: "tofile",
     aliases: ["file", "createfile"],
-    categorie: "File Tools",
+    categorie: "New",
     reaction: "📁",
     nomFichier: __filename,
     description: "Create files from messages (supports code/text/media)"
@@ -15,7 +15,7 @@ adams({
     const { ms, repondre, msgRepondu, arg } = commandeOptions;
 
     if (!msgRepondu) {
-        return repondre(`📁 *File Creation Guide*\n\nReply to a message and use:\n\n• For code/text: *${prefix}tofile filename.ext*\n  Example: *${prefix}tofile script.js*\n\n• For media: *${prefix}tofile filename.ext*\n  Example: *${prefix}tofile image.jpg*\n\nSupported extensions:\n📝 Text: js, html, css, txt, json, py, php\n🎵 Media: mp3, mp4, jpg, png, gif, pdf`);
+        return repondre(`📁 *File Creation Guide*\n\nReply to a message and use:\n\n• For code/text: *tofile filename.ext*\n  Example: *tofile script.js*\n\n• For media: *tofile filename.ext*\n  Example: *tofile image.jpg*\n\nSupported extensions:\n📝 Text: js, html, css, txt, json, py, php\n🎵 Media: mp3, mp4, jpg, png, gif, pdf`);
     }
 
     // Get filename or generate default
