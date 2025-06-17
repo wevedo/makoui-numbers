@@ -4,6 +4,144 @@ const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const fs = require('fs-extra');
 const path = require('path');
 
+adams({
+    nomCom: "tofile",
+    aliases: ["file", "createfile"],
+    categorie: "File Tools",
+    reaction: "📁",
+    nomFichier: __filename,
+    description: "Create files from messages (supports code/text/media)"
+}, async (dest, zk, commandeOptions) => {
+    const { ms, repondre, msgRepondu, arg } = commandeOptions;
+
+    if (!msgRepondu) {
+        return repondre(`📁 *File Creation Guide*\n\nReply to a message and use:\n\n• For code/text: *${prefix}tofile filename.ext*\n  Example: *${prefix}tofile script.js*\n\n• For media: *${prefix}tofile filename.ext*\n  Example: *${prefix}tofile image.jpg*\n\nSupported extensions:\n📝 Text: js, html, css, txt, json, py, php\n🎵 Media: mp3, mp4, jpg, png, gif, pdf`);
+    }
+
+    // Get filename or generate default
+    let filename = arg[0] || generateDefaultFilename(msgRepondu);
+    
+    try {
+        await repondre("⏳ Processing your file...");
+
+        // Handle media files
+        if (msgRepondu.imageMessage || msgRepondu.audioMessage || msgRepondu.videoMessage || msgRepondu.documentMessage) {
+            const buffer = await downloadMedia(msgRepondu);
+            const ext = filename.split('.').pop()?.toLowerCase() || getDefaultExt(msgRepondu);
+            
+            await zk.sendMessage(dest, {
+                document: buffer,
+                fileName: filename,
+                mimetype: getMimeType(ext),
+                caption: `✅ File Created Successfully!\n\n📂 Name: ${filename}\n📦 Type: ${ext.toUpperCase()}\n🔢 Size: ${formatSize(buffer.length)}`
+            }, { quoted: ms });
+            return;
+        }
+
+        // Handle text/code files
+        const content = getTextContent(msgRepondu);
+        if (!content) return repondre("❌ No text content found in the message.");
+
+        const ext = filename.split('.').pop()?.toLowerCase() || 'txt';
+        const tempPath = path.join(__dirname, `temp_${Date.now()}_${filename}`);
+        await fs.writeFile(tempPath, content, 'utf8');
+
+        await zk.sendMessage(dest, {
+            document: fs.readFileSync(tempPath),
+            fileName: filename,
+            mimetype: getMimeType(ext),
+            caption: `✅ File Created Successfully!\n\n📂 Name: ${filename}\n📦 Type: ${ext.toUpperCase()}\n🔤 Size: ${content.length} chars`
+        }, { quoted: ms });
+
+        fs.unlinkSync(tempPath);
+
+    } catch (error) {
+        console.error('File creation error:', error);
+        await repondre(`❌ Failed to create file: ${error.message}`);
+    }
+});
+
+// Helper functions
+async function downloadMedia(msg) {
+    let mediaType, mediaMessage;
+    if (msg.imageMessage) {
+        mediaType = 'image';
+        mediaMessage = msg.imageMessage;
+    } else if (msg.videoMessage) {
+        mediaType = 'video';
+        mediaMessage = msg.videoMessage;
+    } else if (msg.audioMessage) {
+        mediaType = 'audio';
+        mediaMessage = msg.audioMessage;
+    } else if (msg.documentMessage) {
+        mediaType = 'document';
+        mediaMessage = msg.documentMessage;
+    } else {
+        throw new Error("Unsupported media type");
+    }
+
+    const stream = await downloadContentFromMessage(mediaMessage, mediaType);
+    let buffer = Buffer.from([]);
+    for await (const chunk of stream) {
+        buffer = Buffer.concat([buffer, chunk]);
+    }
+    return buffer;
+}
+
+function generateDefaultFilename(msg) {
+    const timestamp = Date.now();
+    if (msg.imageMessage) return `image_${timestamp}.jpg`;
+    if (msg.videoMessage) return `video_${timestamp}.mp4`;
+    if (msg.audioMessage) return `audio_${timestamp}.mp3`;
+    if (msg.documentMessage) return `doc_${timestamp}${msg.documentMessage.fileName?.match(/\..+$/)?.[0] || ''}`;
+    return `text_${timestamp}.txt`;
+}
+
+function getDefaultExt(msg) {
+    if (msg.imageMessage) return 'jpg';
+    if (msg.videoMessage) return 'mp4';
+    if (msg.audioMessage) return 'mp3';
+    if (msg.documentMessage) return msg.documentMessage.fileName?.split('.').pop() || 'bin';
+    return 'txt';
+}
+
+function getTextContent(msg) {
+    return msg.conversation || 
+           msg.extendedTextMessage?.text || 
+           msg.imageMessage?.caption || 
+           '';
+}
+
+function getMimeType(ext) {
+    const types = {
+        // Text/code
+        'txt': 'text/plain',
+        'js': 'application/javascript',
+        'html': 'text/html',
+        'css': 'text/css',
+        'json': 'application/json',
+        'md': 'text/markdown',
+        'py': 'text/x-python',
+        'php': 'application/x-php',
+        
+        // Media
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'mp3': 'audio/mpeg',
+        'mp4': 'video/mp4',
+        'pdf': 'application/pdf'
+    };
+    return types[ext.toLowerCase()] || 'application/octet-stream';
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return `${bytes} bytes`;
+    if (bytes < 1048576) return `${(bytes/1024).toFixed(2)} KB`;
+    return `${(bytes/1048576).toFixed(2)} MB`;
+}
+
 
 // Phone number validation and info extraction
 function getPhoneInfo(phoneNumber) {
@@ -346,140 +484,6 @@ adams({
     }
 });
 
-// ===========================================
-// 📁 FILE CREATOR COMMAND
-// ===========================================
-adams({
-    nomCom: "js",
-    aliases: ["mf", "createfile", "filecreate"],
-    categorie: "File Tools",
-    reaction: "📁",
-    nomFichier: __filename
-}, async (dest, zk, commandeOptions) => {
-    const { ms, repondre, msgRepondu, arg } = commandeOptions;
-
-    if (!msgRepondu) {
-        return repondre("📁 *File Creator*\n\nReply to a message to create a file!\n\n*Text/Code Files:*\n.mf filename.js\n.mf index.html\n.mf style.css\n\n*Media Files:*\n.mf audio.mp3\n.mf video.mp4\n.mf image.jpg");
-    }
-
-    // Get or generate filename with proper extension
-    let filename = arg[0] || generateDefaultFilename(msgRepondu);
-    
-    try {
-        await repondre("⚙️ *Processing your file...*");
-
-        // Handle media files
-        if (msgRepondu.imageMessage || msgRepondu.audioMessage || msgRepondu.videoMessage) {
-            const mediaBuffer = await processMediaFile(zk, msgRepondu);
-            const ext = filename.split('.').pop().toLowerCase();
-            
-            await zk.sendMessage(dest, {
-                document: mediaBuffer,
-                fileName: filename,
-                mimetype: getMimeType(ext),
-                caption: `✅ *File Created Successfully*\n\n📄 *Name:* ${filename}\n📊 *Type:* ${ext.toUpperCase()}\n📦 *Size:* ${formatFileSize(mediaBuffer.length)}\n\n🛠️ *File Creator*`
-            }, { quoted: ms });
-            return;
-        }
-
-        // Handle text/code files
-        const content = getMessageContent(msgRepondu);
-        if (!content) return repondre("❌ No content found in the message.");
-
-        const ext = filename.split('.').pop().toLowerCase();
-        const tempPath = path.join(__dirname, `temp_${Date.now()}_${filename}`);
-        await fs.writeFile(tempPath, content, 'utf8');
-
-        await zk.sendMessage(dest, {
-            document: fs.readFileSync(tempPath),
-            fileName: filename,
-            mimetype: getMimeType(ext),
-            caption: `✅ *File Created Successfully*\n\n📄 *Name:* ${filename}\n📊 *Type:* ${ext.toUpperCase()}\n📝 *Size:* ${content.length} characters\n\n🛠️ *File Creator*`
-        }, { quoted: ms });
-
-        fs.unlinkSync(tempPath);
-
-    } catch (error) {
-        console.error("File creation error:", error);
-        await repondre(`❌ Error: ${error.message}`);
-    }
-});
-
-// Helper functions
-function generateDefaultFilename(msg) {
-    const timestamp = new Date().getTime();
-    if (msg.imageMessage) return `image_${timestamp}.png`;
-    if (msg.audioMessage) return `audio_${timestamp}.mp3`;
-    if (msg.videoMessage) return `video_${timestamp}.mp4`;
-    return `document_${timestamp}.js`;
-}
-
-async function processMediaFile(zk, msg) {
-    if (msg.imageMessage) {
-        const buffer = await zk.downloadAndSaveMediaMessage(msg.imageMessage);
-        const data = fs.readFileSync(buffer);
-        fs.unlinkSync(buffer);
-        return data;
-    }
-    if (msg.audioMessage) {
-        const buffer = await zk.downloadAndSaveMediaMessage(msg.audioMessage);
-        const data = fs.readFileSync(buffer);
-        fs.unlinkSync(buffer);
-        return data;
-    }
-    if (msg.videoMessage) {
-        const buffer = await zk.downloadAndSaveMediaMessage(msg.videoMessage);
-        const data = fs.readFileSync(buffer);
-        fs.unlinkSync(buffer);
-        return data;
-    }
-    throw new Error("Unsupported media type");
-}
-
-function getMessageContent(msg) {
-    return msg.conversation || 
-           msg.extendedTextMessage?.text || 
-           msg.imageMessage?.caption || 
-           '';
-}
-
-function getMimeType(ext) {
-    const types = {
-        // Text/code files
-        'txt': 'text/plain',
-        'js': 'application/javascript',
-        'mjs': 'application/javascript',
-        'cjs': 'application/javascript',
-        'html': 'text/html',
-        'css': 'text/css',
-        'json': 'application/json',
-        'md': 'text/markdown',
-        'py': 'text/x-python',
-        'php': 'application/x-php',
-        'xml': 'application/xml',
-        'csv': 'text/csv',
-        
-        // Media files
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'mp3': 'audio/mpeg',
-        'ogg': 'audio/ogg',
-        'wav': 'audio/wav',
-        'mp4': 'video/mp4',
-        'mov': 'video/quicktime',
-        'pdf': 'application/pdf'
-    };
-    return types[ext.toLowerCase()] || 'application/octet-stream';
-}
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) return `${bytes} bytes`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(2)} KB`;
-    return `${(bytes / 1048576).toFixed(2)} MB`;
-}
 // ===========================================
 // 🎯 FORTUNE MACHINE COMMAND
 // ===========================================
