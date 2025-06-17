@@ -30,7 +30,7 @@ const categories = {
     "😂 FUN MENU": ["HENTAI", "FUN", "REACTION"],
     "🌍 GENERAL MENU": ["GENERAL", "MODS", "UTILITY", "MEDIA", "TRADE"],
     "👨‍👨‍👦‍👦 GROUP MENU": ["GROUP"],
-    "💻 BOT_INFO MENU": ["GITHUB", "USER", "PAIR"],
+    "💻 BOT_INFO MENU": ["GITHUB", "USER", "PAIR", "NEW"],
     "🔞 ADULT MENU": ["XVIDEO"]
 };
 
