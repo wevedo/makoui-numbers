@@ -243,7 +243,7 @@ adams({
                     sourceUrl: "https://bwmxmd.online",
                     renderLargerThumbnail: false,
                     showAdAttribution: true,
-bbbb                }
+                 }
             }
         }, { quoted: ms });
 
@@ -389,60 +389,6 @@ adams({
 
     } catch (error) {
         await repondre("⚡ Reality.exe stopped working. Restart universe needed.");
-    }
-});
-
-// ===========================================
-// 🔍 PERSONALITY SCANNER COMMAND
-// ===========================================
-adams({
-    nomCom: "scan2",
-    aliases: ["scan2", "analyze"],
-    categorie: "New",
-    reaction: "🔍",
-    nomFichier: __filename
-}, async (dest, zk, commandeOptions) => {
-    const { ms, repondre, msgRepondu } = commandeOptions;
-
-    if (!msgRepondu) {
-        return repondre("🔍 Reply to someone's message to scan personality!");
-    }
-
-    try {
-        await repondre("🔍 *Scanning personality...*");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        const message = msgRepondu.conversation || msgRepondu.extendedTextMessage?.text || "No text";
-        const sender = msgRepondu.key.participant?.split('@')[0] || 'Unknown';
-
-        const traits = [];
-        if (message.includes('😂')) traits.push('Humorous');
-        if (message.length > 50) traits.push('Expressive');
-        if (message.includes('!')) traits.push('Enthusiastic');
-        if (message.includes('?')) traits.push('Curious');
-        if (traits.length === 0) traits.push('Mysterious');
-
-        const personalities = ['Introvert', 'Extrovert', 'Ambivert'];
-        const moods = ['Happy', 'Calm', 'Excited', 'Thoughtful'];
-        
-        const personality = personalities[Math.floor(Math.random() * personalities.length)];
-        const mood = moods[Math.floor(Math.random() * moods.length)];
-
-        let response = `🔍 *SCAN COMPLETE*\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-        response += `👤 *Subject:* ${sender}\n`;
-        response += `🎭 *Type:* ${personality}\n`;
-        response += `😊 *Mood:* ${mood}\n`;
-        response += `⭐ *Traits:* ${traits.join(', ')}\n\n`;
-        response += `📊 *Scores:*\n`;
-        response += `• Social: ${Math.floor(Math.random() * 30) + 70}%\n`;
-        response += `• Creative: ${Math.floor(Math.random() * 40) + 60}%\n`;
-        response += `• Logic: ${Math.floor(Math.random() * 35) + 65}%\n\n`;
-        response += `💡 *Style:* ${message.length > 50 ? 'Detailed' : 'Concise'}`;
-
-        await zk.sendMessage(dest, { text: response }, { quoted: ms });
-
-    } catch (error) {
-        await repondre("🔍 Scan failed. Subject too complex to analyze.");
     }
 });
 
