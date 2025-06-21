@@ -583,32 +583,30 @@ async function main() {
             store.destroy();
         }
         store = new CustomStore();
-        
+
         const sockOptions = {
-            version,
-            logger: pino({ level: "silent" }),
-            browser: ['BWM XMD', "safari", "1.0.0"],
-            printQRInTerminal: false, // Disable QR in production
-            auth: {
-                creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, logger)
-            },
-            getMessage: async (key) => {
-                try {
-                    if (store && key?.remoteJid && key?.id) {
-                        const msg = store.loadMessage(key.remoteJid, key.id);
-                        if (msg?.message) {
-                            return msg.message;
-                        }
-                    }
-                    return { conversation: 'Message not found in store' };
-                } catch (error) {
-                    console.error('getMessage error:', error);
-                    // Trigger restart on auth errors
-                    if (await workerManager.handleAuthError(error)) {
-                        return { conversation: '' };
-                    }
-                    return { conversation: 'Error retrieving message' };
+    version,
+    logger: pino({ level: "silent" }),
+    browser: ['BWM XMD', "safari", "1.0.0"],
+    printQRInTerminal: false, // Disable QR in production
+    auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger)
+    },
+    getMessage: async (key) => {
+        try {
+            if (store && key?.remoteJid && key?.id) {
+                const msg = store.loadMessage(key.remoteJid, key.id);
+                if (msg?.message) {
+                    return msg.message;
+                }
+            }
+        } catch (e) {}
+        return undefined; // Just return nothing if not found
+    }
+};
+        
+        
                 }
             },
             connectTimeoutMs: 60000,
