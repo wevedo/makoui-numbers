@@ -113,7 +113,7 @@ adams({ nomCom: "unblock", categorie: "Mods" }, async (dest, zk, commandeOptions
 });
 
 // Group invite link
-adams({ nomCom: ["link", "invite"], categorie: 'Group', reaction: "📩", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, verifAdmin }) => {
+adams({ nomCom: "invite", categorie: 'Group', reaction: "📩", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, verifAdmin }) => {
   try {
     if (!superUser && !verifAdmin) {
       return repondre("❌ You need admin privileges to generate invite links");
