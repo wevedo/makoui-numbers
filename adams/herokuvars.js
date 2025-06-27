@@ -424,7 +424,7 @@ adams({
   }
 });
 
-// Command to restart the Heroku dynos
+// Command to restart the bot using the local endpoint
 adams({
   nomCom: 'update',
   categorie: "Control"
@@ -435,17 +435,72 @@ adams({
     return repondre("🚫 *Access Denied!* This command is restricted to the bot owner.");
   }
 
-  if (!validateHerokuConfig(repondre)) return;
-
   try {
-    await heroku.delete(`/apps/${appName}/dynos`);
+    // Send restart request to local endpoint
+    const response = await fetch('http://localhost:' + (process.env.PORT || 3000) + '/restart');
     await zk.sendMessage(chatId, {
-      text: "✅ *Heroku dynos restarted successfully!*\n\n🔄 *Just wait for one minute for your bot to restart!*"
+      text: "✅ *Bot restart initiated!*\n\n🔄 *Please wait a moment while the bot restarts...*"
     });
   } catch (error) {
-    console.error("Error restarting Heroku dynos:", error);
+    console.error("Error restarting bot:", error);
     await zk.sendMessage(chatId, {
-      text: "⚠️ *Failed to restart Heroku dynos!*\n\nPlease check your Heroku API key and app name, or try again later."
+      text: "⚠️ *Failed to restart bot!*\n\nError: " + error.message
     });
+  }
+});
+
+adams({
+  nomCom: 'restart',
+  categorie: "Control"
+}, async (chatId, zk, context) => {
+  const { repondre, superUser } = context;
+
+  if (!superUser) {
+    return repondre("🚫 *Access Denied!* This command is restricted to the bot owner.");
+  }
+
+  try {
+    // Send restart request to local endpoint
+    const response = await fetch('http://localhost:' + (process.env.PORT || 3000) + '/restart');
+    await zk.sendMessage(chatId, {
+      text: "✅ *Bot restart initiated!*\n\n🔄 *Please wait a moment while the bot restarts...*"
+    });
+  } catch (error) {
+    console.error("Error restarting bot:", error);
+    await zk.sendMessage(chatId, {
+      text: "⚠️ *Failed to restart bot!*\n\nError: " + error.message
+    });
+  }
+});
+
+// Ping command to check bot status
+adams({
+  nomCom: 'status',
+  categorie: "Control"
+}, async (chatId, zk, context) => {
+  const { repondre } = context;
+  
+  try {
+    // Check health endpoint
+    const start = Date.now();
+    const response = await fetch('http://localhost:' + (process.env.PORT || 3000) + '/health');
+    const data = await response.json();
+    const latency = Date.now() - start;
+    
+    const statusMessage = `🏓 *Pong!*
+    
+📊 *Status:* ${data.status}
+⏱️ *Uptime:* ${Math.floor(data.uptime)} seconds
+🔄 *Restart Attempts:* ${data.restartAttempts}
+💾 *Memory Usage:*
+  - RSS: ${(data.memory.rss / 1024 / 1024).toFixed(2)} MB
+  - Heap: ${(data.memory.heapUsed / 1024 / 1024).toFixed(2)}/${(data.memory.heapTotal / 1024 / 1024).toFixed(2)} MB
+⏳ *Latency:* ${latency}ms
+🕒 *Timestamp:* ${data.timestamp}`;
+
+    await repondre(statusMessage);
+  } catch (error) {
+    console.error("Ping error:", error);
+    await repondre("⚠️ *Failed to check bot status!*\n\nError: " + error.message);
   }
 });
