@@ -165,7 +165,45 @@ adams({ nomCom: "left", categorie: 'Group', reaction: "🚪", nomFichier: __file
     repondre(`❌ Failed to leave group: ${error.message}`);
   }
 });
+// Kick user from group
+adams({ nomCom: "remove", categorie: 'Group', reaction: "👢", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
+  try {
+    if (!superUser && !verifAdmin) {
+      return repondre("❌ You need admin privileges to use this command");
+    }
 
+    let userJid;
+    if (msgRepondu) {
+      userJid = auteurMsgRepondu;
+    } else if (arg && arg[0]) {
+      userJid = extractJID(arg[0]);
+      if (!userJid) {
+        return repondre("ℹ️ Usage: !remove @user\nOr reply to a user's message with !kick");
+      }
+    } else {
+      return repondre("ℹ️ Usage: !remove @user\nOr reply to a user's message with !kick");
+    }
+
+    // Verify the user is in group
+    const metadata = await zk.groupMetadata(chatId);
+    const isMember = metadata.participants.some(p => p.id === userJid);
+    
+    if (!isMember) {
+      return repondre("❌ This user is not in the group");
+    }
+
+    // Check if trying to kick an admin (only superUser can do this)
+    const targetIsAdmin = metadata.participants.find(p => p.id === userJid)?.admin;
+    if (targetIsAdmin && !superUser) {
+      return repondre("❌ You can't kick admins - only bot owner can do this");
+    }
+
+    await zk.groupParticipantsUpdate(chatId, [userJid], "remove");
+    repondre(`✅ @${userJid.split('@')[0]} has been removed from the group`, { mentions: [userJid] });
+  } catch (error) {
+    repondre(`❌ Failed to kick user: ${error.message}`);
+  }
+});
 // Kick user from group
 adams({ nomCom: "kick", categorie: 'Group', reaction: "👢", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
   try {
@@ -414,64 +452,6 @@ adams({ nomCom: "groupd", categorie: 'Group', reaction: "📝", nomFichier: __fi
     repondre(`❌ Failed to update description: ${error.message}`);
   }
 });
-
-// NEW COMMANDS ADDED BELOW
-
-// Mute user in group
-adams({ nomCom: "mute", categorie: 'Group', reaction: "🔇", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
-  try {
-    if (!superUser && !verifAdmin) {
-      return repondre("❌ You need admin privileges to use this command");
-    }
-
-    let userJid;
-    if (msgRepondu) {
-      userJid = auteurMsgRepondu;
-    } else if (arg && arg[0]) {
-      userJid = extractJID(arg[0]);
-      if (!userJid) {
-        return repondre("ℹ️ Usage: !mute @user\nOr reply to user's message with !mute");
-      }
-    } else {
-      return repondre("ℹ️ Usage: !mute @user\nOr reply to user's message with !mute");
-    }
-
-    // Get current time + 1 hour (3600 seconds) for mute duration
-    const muteDuration = Math.floor(Date.now() / 1000) + 3600;
-    
-    await zk.groupParticipantsUpdate(chatId, [userJid], "mute", { muteDuration });
-    repondre(`✅ @${userJid.split('@')[0]} has been muted for 1 hour`, { mentions: [userJid] });
-  } catch (error) {
-    repondre(`❌ Failed to mute user: ${error.message}`);
-  }
-});
-
-// Unmute user in group
-adams({ nomCom: "unmute", categorie: 'Group', reaction: "🔊", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
-  try {
-    if (!superUser && !verifAdmin) {
-      return repondre("❌ You need admin privileges to use this command");
-    }
-
-    let userJid;
-    if (msgRepondu) {
-      userJid = auteurMsgRepondu;
-    } else if (arg && arg[0]) {
-      userJid = extractJID(arg[0]);
-      if (!userJid) {
-        return repondre("ℹ️ Usage: !unmute @user\nOr reply to user's message with !unmute");
-      }
-    } else {
-      return repondre("ℹ️ Usage: !unmute @user\nOr reply to user's message with !unmute");
-    }
-
-    await zk.groupParticipantsUpdate(chatId, [userJid], "unmute");
-    repondre(`✅ @${userJid.split('@')[0]} has been unmuted`, { mentions: [userJid] });
-  } catch (error) {
-    repondre(`❌ Failed to unmute user: ${error.message}`);
-  }
-});
-
 // Get group info
 adams({ nomCom: "ginfo", categorie: 'Group', reaction: "ℹ️", nomFichier: __filename }, async (chatId, zk, { repondre }) => {
   try {
