@@ -1,75 +1,121 @@
 const { adams } = require("../Ibrahim/adams");
 
+// Utility function to extract JID from different formats
+function extractJID(input) {
+  if (!input) return null;
+  
+  // Handle direct JIDs (like 254710772666@s.whatsapp.net)
+  if (input.includes('@s.whatsapp.net') || input.includes('@lid')) {
+    return input;
+  }
+  
+  // Handle phone numbers (remove all non-digit characters)
+  const phone = input.replace(/[^0-9]/g, '');
+  if (phone.length >= 10) {
+    return `${phone}@s.whatsapp.net`;
+  }
+  
+  return null;
+}
 
-
+// Join group via invite link
 adams({ nomCom: "join", categorie: "Mods" }, async (dest, zk, commandeOptions) => {
-
-  const { arg, ms, repondre, verifGroupe, msgRepondu, verifAdmin, superUser, auteurMessage } = commandeOptions;
+  const { arg, repondre, superUser } = commandeOptions;
 
   if (!superUser) {
-    repondre("command reserved for the bot owner");
+    repondre("Command reserved for the bot owner");
     return;
   }
-  let result = arg[0].split('https://chat.whatsapp.com/')[1] ;
- await zk.groupAcceptInvite(result) ;
   
-      repondre(`Succes`).catch((e)=>{
-  repondre('Unknown error')
-})
+  if (!arg || !arg[0]) {
+    repondre("Please provide a WhatsApp group invite link");
+    return;
+  }
 
-})
+  try {
+    const result = arg[0].split('https://chat.whatsapp.com/')[1];
+    await zk.groupAcceptInvite(result);
+    repondre(`✅ Successfully joined the group`);
+  } catch (e) {
+    repondre('❌ Failed to join group: ' + e.message);
+  }
+});
 
-
+// Get JID of user
 adams({ nomCom: "jid", categorie: "Mods" }, async (dest, zk, commandeOptions) => {
+  const { repondre, msgRepondu, auteurMsgRepondu, superUser, ms } = commandeOptions;
 
-  const { arg, ms, repondre, verifGroupe, msgRepondu, verifAdmin, superUser, auteurMessage,auteurMsgRepondu } = commandeOptions;
-
-         if (!superUser) {
-    repondre("command reserved for the bot owner");
+  if (!superUser) {
+    repondre("Command reserved for the bot owner");
     return;
   }
-              if(!msgRepondu) {
-                jid = dest
-              } else {
-                jid = auteurMsgRepondu
-              } ;
-   zk.sendMessage(dest,{text : jid },{quoted:ms});
 
-        }) ;
+  const jid = msgRepondu ? auteurMsgRepondu : dest;
+  zk.sendMessage(dest, { text: jid }, { quoted: ms });
+});
 
-  
-
+// Block user
 adams({ nomCom: "block", categorie: "Mods" }, async (dest, zk, commandeOptions) => {
+  const { repondre, msgRepondu, auteurMsgRepondu, superUser, arg, verifGroupe } = commandeOptions;
 
-  const { arg, ms, repondre, verifGroupe, msgRepondu, verifAdmin, superUser, auteurMessage,auteurMsgRepondu } = commandeOptions;
-
-         if (!superUser) {
-    repondre("command reserved for the bot owner");
+  if (!superUser) {
+    repondre("Command reserved for the bot owner");
     return;
   }
-             
-              if(!msgRepondu) { 
-                if(verifGroupe) {
-                  repondre('Be sure to mention the person to block'); return
-                } ;
-                jid = dest
 
-                 await zk.updateBlockStatus(jid, "block")
-    .then( repondre('succes')) 
-              } else {
-                jid = auteurMsgRepondu
-             await zk.updateBlockStatus(jid, "block")
-    .then( repondre('succes'))   } ;
+  let jid;
+  if (msgRepondu) {
+    jid = auteurMsgRepondu;
+  } else if (arg && arg[0]) {
+    jid = extractJID(arg[0]);
+    if (!jid) {
+      return repondre("Please mention a user or reply to their message");
+    }
+  } else {
+    return repondre('Please mention a user or reply to their message');
+  }
 
-  });
-
-
-
-
-adams({ nomCom: "link", categorie: 'Group', reaction: "📩", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, verifAdmin }) => {
   try {
-    // Only group admins can generate invite links
-    if (!superUser) {
+    await zk.updateBlockStatus(jid, "block");
+    repondre(`✅ Successfully blocked ${jid.split('@')[0]}`);
+  } catch (e) {
+    repondre('❌ Failed to block: ' + e.message);
+  }
+});
+
+// Unblock user
+adams({ nomCom: "unblock", categorie: "Mods" }, async (dest, zk, commandeOptions) => {
+  const { repondre, msgRepondu, auteurMsgRepondu, superUser, arg } = commandeOptions;
+
+  if (!superUser) {
+    repondre("Command reserved for the bot owner");
+    return;
+  }
+
+  let jid;
+  if (msgRepondu) {
+    jid = auteurMsgRepondu;
+  } else if (arg && arg[0]) {
+    jid = extractJID(arg[0]);
+    if (!jid) {
+      return repondre("Please mention a user or reply to their message");
+    }
+  } else {
+    return repondre('Please mention a user or reply to their message');
+  }
+
+  try {
+    await zk.updateBlockStatus(jid, "unblock");
+    repondre(`✅ Successfully unblocked ${jid.split('@')[0]}`);
+  } catch (e) {
+    repondre('❌ Failed to unblock: ' + e.message);
+  }
+});
+
+// Group invite link
+adams({ nomCom: ["link", "invite"], categorie: 'Group', reaction: "📩", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, verifAdmin }) => {
+  try {
+    if (!superUser && !verifAdmin) {
       return repondre("❌ You need admin privileges to generate invite links");
     }
 
@@ -77,55 +123,36 @@ adams({ nomCom: "link", categorie: 'Group', reaction: "📩", nomFichier: __file
     const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
     
     repondre(`📩 *Group Invite Link*\n\n${inviteLink}\n\nShare this link to invite others`);
-    
   } catch (error) {
     repondre(`❌ Failed to generate invite link: ${error.message}`);
   }
 });
-adams({ nomCom: "invite", categorie: 'Group',reaction: "📩", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, verifAdmin }) => {
-  try {
-    // Only group admins can generate invite links
-    if (!superUser) {
-      return repondre("❌ You need admin privileges to generate invite links");
-    }
 
-    const inviteCode = await zk.groupInviteCode(chatId);
-    const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-    
-    repondre(`📩 *Group Invite Link*\n\n${inviteLink}\n\nShare this link to invite others`);
-    
-  } catch (error) {
-    repondre(`❌ Failed to generate invite link: ${error.message}`);
-  }
-});
-adams({ nomCom: "add", categorie: 'Group',reaction: "➕", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin }) => {
+// Add user to group
+adams({ nomCom: "add", categorie: 'Group', reaction: "➕", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin }) => {
   try {
-    // Check permissions - either superUser or group admin
     if (!superUser && !verifAdmin) {
       return repondre("❌ You need admin privileges to use this command");
     }
 
     if (!arg || !arg[0]) {
-      return repondre("ℹ️ Usage: !add phone_number");
+      return repondre("ℹ️ Usage: !add phone_number\nOr reply to a user's message with !add");
     }
 
-    const phoneNumber = arg[0].replace(/[^0-9]/g, "");
-    const userJid = `${phoneNumber}@s.whatsapp.net`;
-    
-    // Verify valid phone number
-    if (phoneNumber.length < 10) {
+    const jid = extractJID(arg[0]);
+    if (!jid) {
       return repondre("❌ Please provide a valid phone number (at least 10 digits)");
     }
 
-    // Add user to group
-    await zk.groupParticipantsUpdate(chatId, [userJid], "add");
-    repondre(`✅ Added ${phoneNumber} to the group`);
-    
+    await zk.groupParticipantsUpdate(chatId, [jid], "add");
+    repondre(`✅ Added ${jid.split('@')[0]} to the group`);
   } catch (error) {
     repondre(`❌ Failed to add user: ${error.message}`);
   }
 });
-adams({ nomCom: "left", categorie: 'Group',reaction: "🚪", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => {
+
+// Leave group
+adams({ nomCom: "left", categorie: 'Group', reaction: "🚪", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => {
   try {
     if (!superUser) {
       return repondre("❌ This command is reserved for the bot owner only");
@@ -139,41 +166,48 @@ adams({ nomCom: "left", categorie: 'Group',reaction: "🚪", nomFichier: __filen
   }
 });
 
-adams({ nomCom: "kick",categorie: 'Group', reaction: "👢", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin }) => {
+// Kick user from group
+adams({ nomCom: "kick", categorie: 'Group', reaction: "👢", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
   try {
-    // Check permissions - either superUser or group admin
     if (!superUser && !verifAdmin) {
       return repondre("❌ You need admin privileges to use this command");
     }
 
-    if (!arg || !arg[0]) {
-      return repondre("ℹ️ Usage: !kick @user");
+    let userJid;
+    if (msgRepondu) {
+      userJid = auteurMsgRepondu;
+    } else if (arg && arg[0]) {
+      userJid = extractJID(arg[0]);
+      if (!userJid) {
+        return repondre("ℹ️ Usage: !kick @user\nOr reply to a user's message with !kick");
+      }
+    } else {
+      return repondre("ℹ️ Usage: !kick @user\nOr reply to a user's message with !kick");
     }
 
-    const user = arg[0].replace(/[@+]/g, "") + "@s.whatsapp.net";
-    
     // Verify the user is in group
     const metadata = await zk.groupMetadata(chatId);
-    const isMember = metadata.participants.some(p => p.id === user);
+    const isMember = metadata.participants.some(p => p.id === userJid);
     
     if (!isMember) {
       return repondre("❌ This user is not in the group");
     }
 
     // Check if trying to kick an admin (only superUser can do this)
-    const targetIsAdmin = metadata.participants.find(p => p.id === user)?.admin;
+    const targetIsAdmin = metadata.participants.find(p => p.id === userJid)?.admin;
     if (targetIsAdmin && !superUser) {
       return repondre("❌ You can't kick admins - only bot owner can do this");
     }
 
-    await zk.groupParticipantsUpdate(chatId, [user], "remove");
-    repondre(`✅ @${user.split('@')[0]} has been removed from the group`, { mentions: [user] });
+    await zk.groupParticipantsUpdate(chatId, [userJid], "remove");
+    repondre(`✅ @${userJid.split('@')[0]} has been removed from the group`, { mentions: [userJid] });
   } catch (error) {
     repondre(`❌ Failed to kick user: ${error.message}`);
   }
 });
-// Kick all non-admin members except superUser and bot
-adams({ nomCom: "kickall",categorie: 'Group', reaction: "🔥", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, auteurMessage }) => { 
+
+// Kick all non-admin members
+adams({ nomCom: "kickall", categorie: 'Group', reaction: "🔥", nomFichier: __filename }, async (chatId, zk, { repondre, superUser, auteurMessage }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
@@ -214,8 +248,12 @@ adams({ nomCom: "kickall",categorie: 'Group', reaction: "🔥", nomFichier: __fi
 });
 
 // Enhanced member list with tagging
-adams({ nomCom: "tagall", categorie: 'Group',reaction: "👥", nomFichier: __filename }, async (chatId, zk, { repondre }) => {
+adams({ nomCom: "tagall", categorie: 'Group', reaction: "👥", nomFichier: __filename }, async (chatId, zk, { repondre, verifAdmin, superUser }) => {
   try {
+    if (!superUser && !verifAdmin) {
+      return repondre("❌ You need admin privileges to use this command");
+    }
+
     const metadata = await zk.groupMetadata(chatId);
     const allMembers = metadata.participants;
     
@@ -240,7 +278,7 @@ adams({ nomCom: "tagall", categorie: 'Group',reaction: "👥", nomFichier: __fil
 });
 
 // Open group settings (owner only)
-adams({ nomCom: "opengroup", categorie: 'Group',reaction: "🔓", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => { 
+adams({ nomCom: "opengroup", categorie: 'Group', reaction: "🔓", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
@@ -254,7 +292,7 @@ adams({ nomCom: "opengroup", categorie: 'Group',reaction: "🔓", nomFichier: __
 });
 
 // Close group settings (owner only)
-adams({ nomCom: "closegroup", categorie: 'Group',reaction: "🔒", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => { 
+adams({ nomCom: "closegroup", categorie: 'Group', reaction: "🔒", nomFichier: __filename }, async (chatId, zk, { repondre, superUser }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
@@ -267,8 +305,12 @@ adams({ nomCom: "closegroup", categorie: 'Group',reaction: "🔒", nomFichier: _
   }
 });
 
-// Tag all members
-adams({ nomCom: "hidetag", categorie: 'Group',reaction: "📢", nomFichier: __filename }, async (chatId, zk, { repondre, arg }) => { 
+// Tag all members with hidden mention
+adams({ nomCom: "hidetag", categorie: 'Group', reaction: "📢", nomFichier: __filename }, async (chatId, zk, { repondre, arg, verifAdmin, superUser }) => { 
+  if (!superUser && !verifAdmin) {
+    return repondre("❌ You need admin privileges to use this command");
+  }
+
   try {
     const metadata = await zk.groupMetadata(chatId);
     const mentions = metadata.participants.map(p => p.id);
@@ -284,51 +326,65 @@ adams({ nomCom: "hidetag", categorie: 'Group',reaction: "📢", nomFichier: __fi
 });
 
 // Promote member (owner only)
-adams({ nomCom: "promote", categorie: 'Group',reaction: "⬆️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
+adams({ nomCom: "promote", categorie: 'Group', reaction: "⬆️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, msgRepondu, auteurMsgRepondu }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
   
-  if (!arg || !arg[0]) {
-    return repondre("ℹ️ Usage: .promote @user");
+  let userJid;
+  if (msgRepondu) {
+    userJid = auteurMsgRepondu;
+  } else if (arg && arg[0]) {
+    userJid = extractJID(arg[0]);
+    if (!userJid) {
+      return repondre("ℹ️ Usage: .promote @user\nOr reply to user's message with .promote");
+    }
+  } else {
+    return repondre("ℹ️ Usage: .promote @user\nOr reply to user's message with .promote");
   }
-  
+
   try {
-    const user = arg[0].replace(/[@+]/g, "") + "@s.whatsapp.net";
-    await zk.groupParticipantsUpdate(chatId, [user], "promote");
-    repondre(`✅ @${user.split('@')[0]} has been promoted to admin`, { mentions: [user] });
+    await zk.groupParticipantsUpdate(chatId, [userJid], "promote");
+    repondre(`✅ @${userJid.split('@')[0]} has been promoted to admin`, { mentions: [userJid] });
   } catch (error) {
     repondre(`❌ Failed to promote user: ${error.message}`);
   }
 });
 
 // Demote member (owner only)
-adams({ nomCom: "demote",categorie: 'Group', reaction: "⬇️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
+adams({ nomCom: "demote", categorie: 'Group', reaction: "⬇️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, msgRepondu, auteurMsgRepondu }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
   
-  if (!arg || !arg[0]) {
-    return repondre("ℹ️ Usage: demote @user");
+  let userJid;
+  if (msgRepondu) {
+    userJid = auteurMsgRepondu;
+  } else if (arg && arg[0]) {
+    userJid = extractJID(arg[0]);
+    if (!userJid) {
+      return repondre("ℹ️ Usage: .demote @user\nOr reply to user's message with .demote");
+    }
+  } else {
+    return repondre("ℹ️ Usage: .demote @user\nOr reply to user's message with .demote");
   }
-  
+
   try {
-    const user = arg[0].replace(/[@+]/g, "") + "@s.whatsapp.net";
-    await zk.groupParticipantsUpdate(chatId, [user], "demote");
-    repondre(`✅ @${user.split('@')[0]} has been demoted`, { mentions: [user] });
+    await zk.groupParticipantsUpdate(chatId, [userJid], "demote");
+    repondre(`✅ @${userJid.split('@')[0]} has been demoted`, { mentions: [userJid] });
   } catch (error) {
     repondre(`❌ Failed to demote user: ${error.message}`);
   }
 });
 
 // Change group name (owner only)
-adams({ nomCom: "groupn", categorie: 'Group',reaction: "✏️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
+adams({ nomCom: "groupn", categorie: 'Group', reaction: "✏️", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
   
   if (!arg || !arg[0]) {
-    return repondre("ℹ️ Usage: !groupn New Group Name\nExample: !groupn BWM XMD Group");
+    return repondre("ℹ️ Usage: !groupn New Group Name\nExample: !groupn My Awesome Group");
   }
   
   try {
@@ -341,13 +397,13 @@ adams({ nomCom: "groupn", categorie: 'Group',reaction: "✏️", nomFichier: __f
 });
 
 // Change group description (owner only)
-adams({ nomCom: "groupd",categorie: 'Group', reaction: "📝", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
+adams({ nomCom: "groupd", categorie: 'Group', reaction: "📝", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser }) => { 
   if (!superUser) {
     return repondre("❌ This command is reserved for the bot owner only");
   }
   
   if (!arg || !arg[0]) {
-    return repondre("ℹ️ Usage: !groupd New Description\nExample: !groupd Official BWM XMD community group");
+    return repondre("ℹ️ Usage: !groupd New Description\nExample: !groupd Official group for our community");
   }
   
   try {
@@ -356,5 +412,82 @@ adams({ nomCom: "groupd",categorie: 'Group', reaction: "📝", nomFichier: __fil
     repondre("✅ Group description has been updated");
   } catch (error) {
     repondre(`❌ Failed to update description: ${error.message}`);
+  }
+});
+
+// NEW COMMANDS ADDED BELOW
+
+// Mute user in group
+adams({ nomCom: "mute", categorie: 'Group', reaction: "🔇", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
+  try {
+    if (!superUser && !verifAdmin) {
+      return repondre("❌ You need admin privileges to use this command");
+    }
+
+    let userJid;
+    if (msgRepondu) {
+      userJid = auteurMsgRepondu;
+    } else if (arg && arg[0]) {
+      userJid = extractJID(arg[0]);
+      if (!userJid) {
+        return repondre("ℹ️ Usage: !mute @user\nOr reply to user's message with !mute");
+      }
+    } else {
+      return repondre("ℹ️ Usage: !mute @user\nOr reply to user's message with !mute");
+    }
+
+    // Get current time + 1 hour (3600 seconds) for mute duration
+    const muteDuration = Math.floor(Date.now() / 1000) + 3600;
+    
+    await zk.groupParticipantsUpdate(chatId, [userJid], "mute", { muteDuration });
+    repondre(`✅ @${userJid.split('@')[0]} has been muted for 1 hour`, { mentions: [userJid] });
+  } catch (error) {
+    repondre(`❌ Failed to mute user: ${error.message}`);
+  }
+});
+
+// Unmute user in group
+adams({ nomCom: "unmute", categorie: 'Group', reaction: "🔊", nomFichier: __filename }, async (chatId, zk, { repondre, arg, superUser, verifAdmin, msgRepondu, auteurMsgRepondu }) => {
+  try {
+    if (!superUser && !verifAdmin) {
+      return repondre("❌ You need admin privileges to use this command");
+    }
+
+    let userJid;
+    if (msgRepondu) {
+      userJid = auteurMsgRepondu;
+    } else if (arg && arg[0]) {
+      userJid = extractJID(arg[0]);
+      if (!userJid) {
+        return repondre("ℹ️ Usage: !unmute @user\nOr reply to user's message with !unmute");
+      }
+    } else {
+      return repondre("ℹ️ Usage: !unmute @user\nOr reply to user's message with !unmute");
+    }
+
+    await zk.groupParticipantsUpdate(chatId, [userJid], "unmute");
+    repondre(`✅ @${userJid.split('@')[0]} has been unmuted`, { mentions: [userJid] });
+  } catch (error) {
+    repondre(`❌ Failed to unmute user: ${error.message}`);
+  }
+});
+
+// Get group info
+adams({ nomCom: "ginfo", categorie: 'Group', reaction: "ℹ️", nomFichier: __filename }, async (chatId, zk, { repondre }) => {
+  try {
+    const metadata = await zk.groupMetadata(chatId);
+    const participants = metadata.participants;
+    
+    const infoMessage = `ℹ️ *Group Information*\n\n` +
+                      `🔖 Name: ${metadata.subject}\n` +
+                      `🆔 ID: ${metadata.id}\n` +
+                      `👥 Participants: ${participants.length}\n` +
+                      `🛡️ Admins: ${participants.filter(p => p.admin).length}\n` +
+                      `📅 Created: ${new Date(metadata.creation * 1000).toLocaleString()}\n` +
+                      `👑 Owner: ${metadata.owner ? metadata.owner.split('@')[0] : 'Unknown'}`;
+    
+    repondre(infoMessage);
+  } catch (error) {
+    repondre(`❌ Failed to get group info: ${error.message}`);
   }
 });
