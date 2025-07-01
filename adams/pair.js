@@ -8,9 +8,9 @@ const apiEndpoints = [
     "https://bwm-xmd-scanner-1.onrender.com",
     "https://bwm-xmd-scanner-2.onrender.com",
     "https://bwm-xmd-scanner-vv1.onrender.com",
-    "https://bwm-xmd-scanner-vv2.onrender.com",
-    "https://bwm-xmd-scanner-vvv1.onrender.com",
-    "https://bwm-xmd-scanner-vvv2.onrender.com"
+    "https://bwm-xmd-scanner-vv2.onrender.com"
+   // "https://bwm-xmd-scanner-vvv1.onrender.com",
+  //  "https://bwm-xmd-scanner-vvv2.onrender.com"
 ];
 
 // Unified Rent/Code Command
@@ -149,7 +149,7 @@ adams({ nomCom: "scan", reaction: "🔍", categorie: "pair" }, async (dest, zk, 
 
 ╭────────────━⊷
 🌐 ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ, ᴠɪsɪᴛ
-> business.bwmxmd.online
+> bwmxmd.online
 ╰────────────━⊷
 > Made by Ibrahim Adams
         `;
