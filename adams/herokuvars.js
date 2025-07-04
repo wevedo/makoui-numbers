@@ -424,7 +424,6 @@ adams({
   }
 });
 
-// Command to restart the bot using the local endpoint
 adams({
   nomCom: 'update',
   categorie: "Control"
@@ -436,16 +435,35 @@ adams({
   }
 
   try {
+    // First verify zk object exists before proceeding
+    if (!zk || typeof zk.sendMessage !== 'function') {
+      console.error("Error: zk object is not properly initialized");
+      return repondre("⚠️ *Bot connection error!* Please try again later.");
+    }
+
     // Send restart request to local endpoint
     const response = await fetch('http://localhost:' + (process.env.PORT || 3000) + '/restart');
+    
+    // Verify the response
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     await zk.sendMessage(chatId, {
       text: "✅ *Bot restart initiated!*\n\n🔄 *Please wait a moment while the bot restarts...*"
     });
   } catch (error) {
     console.error("Error restarting bot:", error);
-    await zk.sendMessage(chatId, {
-      text: "⚠️ *Failed to restart bot!*\n\nError: " + error.message
-    });
+    
+    // Use repondre if zk is not available
+    if (zk && typeof zk.sendMessage === 'function') {
+      await zk.sendMessage(chatId, {
+        text: "⚠️ *Failed to restart bot!*\n\nError: " + (error.message || 'Unknown error')
+      });
+    } else {
+      // Fallback to repondre if zk is not available
+      repondre("⚠️ *Failed to restart bot!* Please check logs for details.");
+    }
   }
 });
 
@@ -460,16 +478,35 @@ adams({
   }
 
   try {
+    // First verify zk object exists before proceeding
+    if (!zk || typeof zk.sendMessage !== 'function') {
+      console.error("Error: zk object is not properly initialized");
+      return repondre("⚠️ *Bot connection error!* Please try again later.");
+    }
+
     // Send restart request to local endpoint
     const response = await fetch('http://localhost:' + (process.env.PORT || 3000) + '/restart');
+    
+    // Verify the response
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     await zk.sendMessage(chatId, {
       text: "✅ *Bot restart initiated!*\n\n🔄 *Please wait a moment while the bot restarts...*"
     });
   } catch (error) {
     console.error("Error restarting bot:", error);
-    await zk.sendMessage(chatId, {
-      text: "⚠️ *Failed to restart bot!*\n\nError: " + error.message
-    });
+    
+    // Use repondre if zk is not available
+    if (zk && typeof zk.sendMessage === 'function') {
+      await zk.sendMessage(chatId, {
+        text: "⚠️ *Failed to restart bot!*\n\nError: " + (error.message || 'Unknown error')
+      });
+    } else {
+      // Fallback to repondre if zk is not available
+      repondre("⚠️ *Failed to restart bot!* Please check logs for details.");
+    }
   }
 });
 
