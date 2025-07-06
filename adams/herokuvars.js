@@ -546,8 +546,28 @@ adams({
 });
 
 // **NEW: Direct commands like "autotyping", "autobio", etc.**
-const autoFeatures = ['autotyping', 'autobio', 'autoreact', 'autoread', 'chatbot', 'audiochatbot', 'antilink', 'welcome', 'goodbye', 'antidelete', 'alwaysonline', 'autorecording'];
-
+const autoFeatures = [
+    'autotyping',
+    'alwaysonline',
+    'autorecording',
+    'autobio',
+    'autoreact',
+    'autoread',
+    'chatbot',
+    'audiochatbot',
+    'antilink',
+    'welcome',
+    'goodbye',
+    'antidelete',
+    'autoreply',
+    'privatemode',
+    'startmsg',
+    'autoreactstatus',
+    'autoreadstatus',
+    'autodownloadstatus',
+    'antideleterecover',
+    'anticall'
+];
 autoFeatures.forEach(feature => {
     adams({
         nomCom: feature,
