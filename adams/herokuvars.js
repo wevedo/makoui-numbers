@@ -301,7 +301,7 @@ adams({
 
 // **New Command: Get Variable Value**
 adams({
-    nomCom: 'getvar',
+    nomCom: 'getallvarvar',
     categorie: "Control"
 }, async (chatId, zk, context) => {
     const { repondre, superUser, arg } = context;
