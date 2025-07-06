@@ -1419,13 +1419,33 @@ async function main() {
 
                     // DEFINE RESTRICTED COMMANDS
                     const restrictedCommands = [
-    'getallvar', 'setvar', 'settings', 'update', 'reset', 'restart',
-    'anticall', 'autoreact', 'autoreadstatus', 'privatemode', 'autorecord', 'autotyping', 'alwaysonline',
-    'join', 'jid', 'block',
-    'link', 'invite', 'left', 'kick', 'kickall', 'opengroup', 'closegroup', 'hidetag', 
-    'promote', 'demote', 'groupn', 'groupd', 'senttoall', 'opentime', 'closetime', 
-    'canceltimer', 'lockdown', 'resetlink', 'ephemeral', 'del', 'reject', 'approve', 'setgpp',
-    'add', 'mute', 'unmute', 'setname', 'setdesc', 'revoke'
+    // Core bot controls
+    'getallvar', 'setvar', 'settings', 'update', 'reset', 'restart', 'backup', 'status',
+    
+    // Presence/status features
+    'autotyping', 'alwaysonline', 'autorecording', 'autobio', 'alwaysonline',
+    
+    // Reaction/read features
+    'autoreact', 'autoreactstatus', 'autoread', 'autoreadstatus', 'autodownloadstatus',
+    
+    // Chat features
+    'chatbot', 'audiochatbot', 'autoreply', 'startmsg',
+    
+    // Privacy/security
+    'privatemode', 'anticall', 'antilink', 'antidelete', 'antideleterecover',
+    
+    // Group management
+    'join', 'jid', 'block', 'link', 'invite', 'left', 'kick', 'kickall', 
+    'opengroup', 'closegroup', 'hidetag', 'promote', 'demote', 'groupn', 
+    'groupd', 'senttoall', 'opentime', 'closetime', 'canceltimer', 
+    'lockdown', 'resetlink', 'ephemeral', 'del', 'reject', 'approve', 
+    'setgpp', 'add', 'mute', 'unmute', 'setname', 'setdesc', 'revoke',
+    
+    // Welcome/goodbye
+    'welcome', 'goodbye',
+    
+    // Variable controls
+    'getvar', 'listvar'
 ];
 
                     const isRestrictedCommand = restrictedCommands.includes(com);
@@ -1609,7 +1629,7 @@ async function main() {
 │ 🔄 Auto-fix: *ONLINE*
 └────────────┈ ⳹  
 │ *ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ, ᴠɪsɪᴛ*
-│ https://bwmxmd.online
+│ https://business.bwmxmd.online
 │ App Name: ${herokuAppName}
 └───────────────┈ ⳹  
 │  ©ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs
