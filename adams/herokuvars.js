@@ -19,9 +19,13 @@ const configMapping = {
     CHATBOT: "Chatbot",
     PUBLIC_MODE: "Public Mode",
     STARTING_BOT_MESSAGE: "Starting Bot Message",
-    "Auto Typing": "Auto Typing",
+    "Auto Typing DM": "Auto Typing DM",
+    "Auto Typing Group": "Auto Typing Group",
+    "Auto Typing All": "Auto Typing All",
+    "Auto Recording DM": "Auto Recording DM",
+    "Auto Recording Group": "Auto Recording Group",
+    "Auto Recording All": "Auto Recording All",
     "Always Online": "Always Online",
-    "Auto Recording": "Auto Recording",
     ANTIDELETE_RECOVER_CONVENTION: "Anti Delete Recover Convention",
     ANTIDELETE_SENT_INBOX: "Anti Delete Sent Inbox",
     GOODBYE_MESSAGE: "Goodbye Message",
@@ -81,15 +85,27 @@ adams(
             variableKeys.forEach((key) => {
                 let currentValue;
 
-                if (key === "Auto Typing") {
+                if (key === "Auto Typing DM") {
                     const presence = hybridConfig.getSetting('PRESENCE', '0');
                     currentValue = presence === "2" ? "yes" : "no";
+                } else if (key === "Auto Typing Group") {
+                    const presence = hybridConfig.getSetting('PRESENCE', '0');
+                    currentValue = presence === "4" ? "yes" : "no";
+                } else if (key === "Auto Typing All") {
+                    const presence = hybridConfig.getSetting('PRESENCE', '0');
+                    currentValue = presence === "5" ? "yes" : "no";
+                } else if (key === "Auto Recording DM") {
+                    const presence = hybridConfig.getSetting('PRESENCE', '0');
+                    currentValue = presence === "3" ? "yes" : "no";
+                } else if (key === "Auto Recording Group") {
+                    const presence = hybridConfig.getSetting('PRESENCE', '0');
+                    currentValue = presence === "6" ? "yes" : "no";
+                } else if (key === "Auto Recording All") {
+                    const presence = hybridConfig.getSetting('PRESENCE', '0');
+                    currentValue = presence === "7" ? "yes" : "no";
                 } else if (key === "Always Online") {
                     const presence = hybridConfig.getSetting('PRESENCE', '0');
                     currentValue = presence === "1" ? "yes" : "no";
-                } else if (key === "Auto Recording") {
-                    const presence = hybridConfig.getSetting('PRESENCE', '0');
-                    currentValue = presence === "3" ? "yes" : "no";
                 } else {
                     const settingValue = hybridConfig.getSetting(key, 'no');
                     currentValue = settingValue === "yes" ? "yes" : "no";
@@ -124,7 +140,7 @@ adams(
                     "\n"
                 )}\n\n📌 *Reply with a number to toggle a variable or navigate pages:*\n▶️ *${chunkSize * 2 + 1}* Next Page\n◀️ *${
                     chunkSize * 2 + 2
-                }* Previous Page\n\n🔧 *Quick Commands:*\n• \`autotyping on/off\` - Auto typing\n• \`autobio on/off\` - Auto bio\n• \`chatbot on/off\` - Chatbot\n• \`setvar KEY=value\` - Set any variable`;
+                }* Previous Page\n\n🔧 *Quick Commands:*\n• \`autotypingdm on/off\` - Auto typing DM\n• \`autotypinggroup on/off\` - Auto typing Group\n• \`autotypingall on/off\` - Auto typing All\n• \`autorecordingdm on/off\` - Auto recording DM\n• \`autorecordinggroup on/off\` - Auto recording Group\n• \`autorecordingall on/off\` - Auto recording All\n• \`alwaysonline on/off\` - Always online\n• \`autobio on/off\` - Auto bio\n• \`chatbot on/off\` - Chatbot\n• \`setvar KEY=value\` - Set any variable`;
 
                 const sentMessage = await zk.sendMessage(chatId, {
                     image: { url: randomImage },
@@ -174,12 +190,20 @@ adams(
                         let newValue = selectedIndex % 2 === 1 ? "yes" : "no";
                         let presenceValue = null;
 
-                        if (selectedKey === "Auto Typing") {
+                        if (selectedKey === "Auto Typing DM") {
                             presenceValue = newValue === "yes" ? "2" : "0";
+                        } else if (selectedKey === "Auto Typing Group") {
+                            presenceValue = newValue === "yes" ? "4" : "0";
+                        } else if (selectedKey === "Auto Typing All") {
+                            presenceValue = newValue === "yes" ? "5" : "0";
+                        } else if (selectedKey === "Auto Recording DM") {
+                            presenceValue = newValue === "yes" ? "3" : "0";
+                        } else if (selectedKey === "Auto Recording Group") {
+                            presenceValue = newValue === "yes" ? "6" : "0";
+                        } else if (selectedKey === "Auto Recording All") {
+                            presenceValue = newValue === "yes" ? "7" : "0";
                         } else if (selectedKey === "Always Online") {
                             presenceValue = newValue === "yes" ? "1" : "0";
-                        } else if (selectedKey === "Auto Recording") {
-                            presenceValue = newValue === "yes" ? "3" : "0";
                         }
 
                         try {
@@ -431,7 +455,7 @@ adams({
 
 // **New Command: System Status**
 adams({
-    nomCom: 'status',
+    nomCom: 'systemstatus',
     categorie: "Control"
 }, async (chatId, zk, context) => {
     const { repondre, superUser } = context;
@@ -485,7 +509,7 @@ adams({
     }
 
     if (arg.length < 2) {
-        return repondre("📋 *Usage:* `auto [feature] [on/off]`\n\nExamples:\n• `auto typing on`\n• `auto bio off`\n• `auto react on`\n• `auto read off`");
+        return repondre("📋 *Usage:* `auto [feature] [on/off]`\n\nExamples:\n• `auto bio on`\n• `auto react off`\n• `auto read on`\n\n⚠️ *For typing/recording use:*\n• `autotypingdm on/off`\n• `autotypinggroup on/off`\n• `autotypingall on/off`\n• `autorecordingdm on/off`\n• `autorecordinggroup on/off`\n• `autorecordingall on/off`");
     }
 
     const feature = arg.slice(0, -1).join('').toLowerCase().replace(/\s+/g, '');
@@ -499,31 +523,28 @@ adams({
 
     // Feature mapping
     const featureMap = {
-    'typing': { key: 'PRESENCE', value: action === 'on' ? '2' : '0', name: 'Auto Typing' },
-    'online': { key: 'PRESENCE', value: action === 'on' ? '1' : '0', name: 'Always Online' },
-    'recording': { key: 'PRESENCE', value: action === 'on' ? '3' : '0', name: 'Auto Recording' },
-    'bio': { key: 'AUTO_BIO', value: value, name: 'Auto Bio' },
-    'react': { key: 'AUTO_REACT', value: value, name: 'Auto React' },
-    'read': { key: 'AUTO_READ', value: value, name: 'Auto Read' },
-    'chatbot': { key: 'CHATBOT', value: value, name: 'Chatbot' },
-    'audiochatbot': { key: 'AUDIO_CHATBOT', value: value, name: 'Audio Chatbot' },
-    'antilink': { key: 'GROUPANTILINK', value: value, name: 'Group Anti Link' },
-    'welcome': { key: 'WELCOME_MESSAGE', value: value, name: 'Welcome Message' },
-    'goodbye': { key: 'GOODBYE_MESSAGE', value: value, name: 'Goodbye Message' },
-    'antidelete': { key: 'ANTIDELETE_SENT_INBOX', value: value, name: 'Anti Delete' },
-    'autoreply': { key: 'AUTO_REPLY_STATUS', value: value, name: 'Auto reply status' },
-    'privatemode': { key: 'PUBLIC_MODE', value: value, name: 'Public Mode' },
-    'startmsg': { key: 'STARTING_BOT_MESSAGE', value: value, name: 'Starting Bot Message' },
-    'autoreactstatus': { key: 'AUTO_REACT_STATUS', value: value, name: 'Auto React Status' },
-    'autoreadstatus': { key: 'AUTO_READ_STATUS', value: value, name: 'Auto Read Status' },
-    'autodownloadstatus': { key: 'AUTO_DOWNLOAD_STATUS', value: value, name: 'Auto Download Status' },
-    'antideleterecover': { key: 'ANTIDELETE_RECOVER_CONVENTION', value: value, name: 'Anti Delete Recover Convention' },
-    'rejectcall': { key: 'AUTO_REJECT_CALL', value: value, name: 'Auto Reject Call' }
-};
+        'bio': { key: 'AUTO_BIO', value: value, name: 'Auto Bio' },
+        'react': { key: 'AUTO_REACT', value: value, name: 'Auto React' },
+        'read': { key: 'AUTO_READ', value: value, name: 'Auto Read' },
+        'chatbot': { key: 'CHATBOT', value: value, name: 'Chatbot' },
+        'audiochatbot': { key: 'AUDIO_CHATBOT', value: value, name: 'Audio Chatbot' },
+        'antilink': { key: 'GROUPANTILINK', value: value, name: 'Group Anti Link' },
+        'welcome': { key: 'WELCOME_MESSAGE', value: value, name: 'Welcome Message' },
+        'goodbye': { key: 'GOODBYE_MESSAGE', value: value, name: 'Goodbye Message' },
+        'antidelete': { key: 'ANTIDELETE_SENT_INBOX', value: value, name: 'Anti Delete' },
+        'autoreply': { key: 'AUTO_REPLY_STATUS', value: value, name: 'Auto reply status' },
+        'privatemode': { key: 'PUBLIC_MODE', value: value, name: 'Public Mode' },
+        'startmsg': { key: 'STARTING_BOT_MESSAGE', value: value, name: 'Starting Bot Message' },
+        'autoreactstatus': { key: 'AUTO_REACT_STATUS', value: value, name: 'Auto React Status' },
+        'autoreadstatus': { key: 'AUTO_READ_STATUS', value: value, name: 'Auto Read Status' },
+        'autodownloadstatus': { key: 'AUTO_DOWNLOAD_STATUS', value: value, name: 'Auto Download Status' },
+        'antideleterecover': { key: 'ANTIDELETE_RECOVER_CONVENTION', value: value, name: 'Anti Delete Recover Convention' },
+        'rejectcall': { key: 'AUTO_REJECT_CALL', value: value, name: 'Auto Reject Call' }
+    };
 
     const setting = featureMap[feature];
     if (!setting) {
-        return repondre(`❌ *Unknown feature: ${feature}*\n\nAvailable: typing, online, recording, bio, react, read, chatbot, audiochatbot, antilink, welcome, goodbye, antidelete`);
+        return repondre(`❌ *Unknown feature: ${feature}*\n\nAvailable: bio, react, read, chatbot, audiochatbot, antilink, welcome, goodbye, antidelete\n\n⚠️ *For typing/recording use:*\n• \`autotypingdm on/off\`\n• \`autotypinggroup on/off\`\n• \`autotypingall on/off\`\n• \`autorecordingdm on/off\`\n• \`autorecordinggroup on/off\`\n• \`autorecordingall on/off\``);
     }
 
     try {
@@ -545,11 +566,88 @@ adams({
     }
 });
 
-// **NEW: Direct commands like "autotyping", "autobio", etc.**
+// **NEW: Old command handlers with error messages**
+adams({
+    nomCom: 'autotyping',
+    categorie: "Control"
+}, async (chatId, zk, context) => {
+    const { repondre, superUser } = context;
+
+    if (!superUser) {
+        return repondre("🚫 *Access Denied!* This command is restricted to the bot owner.");
+    }
+
+    return repondre("❌ *Invalid use!*\n\n✅ *Use these commands instead:*\n• `autotypingdm on/off` - Typing in private chats\n• `autotypinggroup on/off` - Typing in groups\n• `autotypingall on/off` - Typing in all chats");
+});
+
+adams({
+    nomCom: 'autorecording',
+    categorie: "Control"
+}, async (chatId, zk, context) => {
+    const { repondre, superUser } = context;
+
+    if (!superUser) {
+        return repondre("🚫 *Access Denied!* This command is restricted to the bot owner.");
+    }
+
+    return repondre("❌ *Invalid use!*\n\n✅ *Use these commands instead:*\n• `autorecordingdm on/off` - Recording in private chats\n• `autorecordinggroup on/off` - Recording in groups\n• `autorecordingall on/off` - Recording in all chats");
+});
+
+// **NEW: Specific presence commands**
+const presenceCommands = [
+    { cmd: 'autotypingdm', value: '2', offValue: '0', name: 'Auto Typing DM' },
+    { cmd: 'autotypinggroup', value: '4', offValue: '0', name: 'Auto Typing Group' },
+    { cmd: 'autotypingall', value: '5', offValue: '0', name: 'Auto Typing All' },
+    { cmd: 'autorecordingdm', value: '3', offValue: '0', name: 'Auto Recording DM' },
+    { cmd: 'autorecordinggroup', value: '6', offValue: '0', name: 'Auto Recording Group' },
+    { cmd: 'autorecordingall', value: '7', offValue: '0', name: 'Auto Recording All' },
+    { cmd: 'alwaysonline', value: '1', offValue: '0', name: 'Always Online' }
+];
+
+presenceCommands.forEach(({ cmd, value, offValue, name }) => {
+    adams({
+        nomCom: cmd,
+        categorie: "Control"
+    }, async (chatId, zk, context) => {
+        const { repondre, superUser, arg } = context;
+
+        if (!superUser) {
+            return repondre("🚫 *Access Denied!* This command is restricted to the bot owner.");
+        }
+
+        if (arg.length < 1) {
+            return repondre(`📋 *Usage:* \`${cmd} [on/off]\`\n\nExample: \`${cmd} on\``);
+        }
+
+        const action = arg[0].toLowerCase();
+        if (!['on', 'off'].includes(action)) {
+            return repondre("❌ *Invalid action!* Use `on` or `off`");
+        }
+
+        const presenceValue = action === 'on' ? value : offValue;
+
+        try {
+            const success = await hybridConfig.setSetting('PRESENCE', presenceValue);
+            
+            if (success) {
+                await zk.sendMessage(chatId, {
+                    text: `✅ *${name} is now ${action.toUpperCase()}*\n\n🔄 *Bot is restarting...*`
+                });
+                await hybridConfig.restartBot();
+            } else {
+                await zk.sendMessage(chatId, {
+                    text: `❌ *Failed to update ${name}*`
+                });
+            }
+        } catch (error) {
+            console.error(`${cmd} command error:`, error);
+            repondre(`⚠️ *Error: ${error.message}*`);
+        }
+    });
+});
+
+// **NEW: Direct commands for other features**
 const autoFeatures = [
-    'autotyping',
-    'alwaysonline',
-    'autorecording',
     'autobio',
     'autoreact',
     'autoread',
@@ -568,6 +666,7 @@ const autoFeatures = [
     'antideleterecover',
     'anticall'
 ];
+
 autoFeatures.forEach(feature => {
     adams({
         nomCom: feature,
@@ -591,27 +690,24 @@ autoFeatures.forEach(feature => {
         const value = action === 'on' ? 'yes' : 'no';
 
         const featureMap = {
-    'autotyping': { key: 'PRESENCE', value: action === 'on' ? '2' : '0', name: 'Auto Typing' },
-    'alwaysonline': { key: 'PRESENCE', value: action === 'on' ? '1' : '0', name: 'Always Online' },
-    'autorecording': { key: 'PRESENCE', value: action === 'on' ? '3' : '0', name: 'Auto Recording' },
-    'autobio': { key: 'AUTO_BIO', value: value, name: 'Auto Bio' },
-    'autoreact': { key: 'AUTO_REACT', value: value, name: 'Auto React' },
-    'autoread': { key: 'AUTO_READ', value: value, name: 'Auto Read' },
-    'chatbot': { key: 'CHATBOT', value: value, name: 'Chatbot' },
-    'audiochatbot': { key: 'AUDIO_CHATBOT', value: value, name: 'Audio Chatbot' },
-    'antilink': { key: 'GROUPANTILINK', value: value, name: 'Group Anti Link' },
-    'welcome': { key: 'WELCOME_MESSAGE', value: value, name: 'Welcome Message' },
-    'goodbye': { key: 'GOODBYE_MESSAGE', value: value, name: 'Goodbye Message' },
-    'antidelete': { key: 'ANTIDELETE_SENT_INBOX', value: value, name: 'Anti Delete' },
-    'autoreply': { key: 'AUTO_REPLY_STATUS', value: value, name: 'Auto reply status' },
-    'privatemode': { key: 'PUBLIC_MODE', value: value, name: 'Public Mode' },
-    'startmsg': { key: 'STARTING_BOT_MESSAGE', value: value, name: 'Starting Bot Message' },
-    'autoreactstatus': { key: 'AUTO_REACT_STATUS', value: value, name: 'Auto React Status' },
-    'autoreadstatus': { key: 'AUTO_READ_STATUS', value: value, name: 'Auto Read Status' },
-    'autodownloadstatus': { key: 'AUTO_DOWNLOAD_STATUS', value: value, name: 'Auto Download Status' },
-    'antideleterecover': { key: 'ANTIDELETE_RECOVER_CONVENTION', value: value, name: 'Anti Delete Recover Convention' },
-    'anticall': { key: 'AUTO_REJECT_CALL', value: value, name: 'Anti call' }
-};
+            'autobio': { key: 'AUTO_BIO', value: value, name: 'Auto Bio' },
+            'autoreact': { key: 'AUTO_REACT', value: value, name: 'Auto React' },
+            'autoread': { key: 'AUTO_READ', value: value, name: 'Auto Read' },
+            'chatbot': { key: 'CHATBOT', value: value, name: 'Chatbot' },
+            'audiochatbot': { key: 'AUDIO_CHATBOT', value: value, name: 'Audio Chatbot' },
+            'antilink': { key: 'GROUPANTILINK', value: value, name: 'Group Anti Link' },
+            'welcome': { key: 'WELCOME_MESSAGE', value: value, name: 'Welcome Message' },
+            'goodbye': { key: 'GOODBYE_MESSAGE', value: value, name: 'Goodbye Message' },
+            'antidelete': { key: 'ANTIDELETE_SENT_INBOX', value: value, name: 'Anti Delete' },
+            'autoreply': { key: 'AUTO_REPLY_STATUS', value: value, name: 'Auto reply status' },
+            'privatemode': { key: 'PUBLIC_MODE', value: value, name: 'Public Mode' },
+            'startmsg': { key: 'STARTING_BOT_MESSAGE', value: value, name: 'Starting Bot Message' },
+            'autoreactstatus': { key: 'AUTO_REACT_STATUS', value: value, name: 'Auto React Status' },
+            'autoreadstatus': { key: 'AUTO_READ_STATUS', value: value, name: 'Auto Read Status' },
+            'autodownloadstatus': { key: 'AUTO_DOWNLOAD_STATUS', value: value, name: 'Auto Download Status' },
+            'antideleterecover': { key: 'ANTIDELETE_RECOVER_CONVENTION', value: value, name: 'Anti Delete Recover Convention' },
+            'anticall': { key: 'AUTO_REJECT_CALL', value: value, name: 'Anti call' }
+        };
 
         const setting = featureMap[feature];
 
@@ -633,9 +729,9 @@ autoFeatures.forEach(feature => {
             repondre(`⚠️ *Error: ${error.message}*`);
         }
     });
+});
 
-
-  // Command to restart the bot using the local endpoint
+// Command to restart the bot using the local endpoint
 adams({
   nomCom: 'update',
   categorie: "Control"
@@ -714,5 +810,4 @@ adams({
     console.error("Ping error:", error);
     await repondre("⚠️ *Failed to check bot status!*\n\nError: " + error.message);
   }
-});
 });
