@@ -657,7 +657,7 @@ const autoFeatures = [
     'welcome',
     'goodbye',
     'antidelete',
-    'autoreplstatus',
+    'autoreplystatus',
     'privatemode',
     'startmsg',
     'autoreactstatus',
