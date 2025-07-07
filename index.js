@@ -137,7 +137,7 @@ class WorkerManager {
             // Clean session if required
             if (cleanSession || this.authErrorCount >= this.maxAuthErrors) {
                 try {
-                    const sessionDir = path.join(__dirname, "bwmxmd");
+                    const sessionDir = path.join(__dirname, "Ibrahim");
                     if (fs.existsSync(sessionDir)) {
                         await fs.remove(sessionDir);
                         console.log('✅ Session directory cleaned');
@@ -540,7 +540,7 @@ function atbverifierEtatJid(jid) {
 // ENHANCED AUTHENTICATION FUNCTION WITH BETTER ERROR HANDLING
 async function authentification() {
     try {
-        const sessionDir = path.join(__dirname, "bwmxmd");
+        const sessionDir = path.join(__dirname, "Ibrahim");
         
         if (!fs.existsSync(sessionDir)) {
             fs.mkdirSync(sessionDir, { recursive: true });
@@ -581,7 +581,7 @@ async function authentification() {
     } catch (error) {
         console.error("❌ Session setup failed:", error.message);
         
-        const sessionDir = path.join(__dirname, "bwmxmd");
+        const sessionDir = path.join(__dirname, "Ibrahim");
         if (fs.existsSync(sessionDir)) {
             fs.rmSync(sessionDir, { recursive: true, force: true });
         }
@@ -606,7 +606,7 @@ async function main() {
         await authentification();
         
         const { version, isLatest } = await fetchLatestBaileysVersion();
-        const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/bwmxmd");
+        const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/Ibrahim");
         
         if (store) {
             store.destroy();
@@ -695,601 +695,988 @@ async function main() {
 
         //============================================================================//
         
-        let ibraah = { chats: {} };
-        const botJid = standardizeJid(adams.user?.id);
-        const botOwnerJid = standardizeJid(adams.user?.id);
+         let ibraah = { chats: {} };
+const botJid = `${adams.user?.id.split(':')[0]}@s.whatsapp.net`;
+const botOwnerJid = `${adams.user?.id.split(':')[0]}@s.whatsapp.net`; // Fixed: Changed from adams.user to config
 
-        const processMediaMessage = async (deletedMessage) => {
-            let mediaType, mediaInfo;
-            
-            const mediaTypes = {
-                imageMessage: 'image',
-                videoMessage: 'video',
-                audioMessage: 'audio',
-                stickerMessage: 'sticker',
-                documentMessage: 'document'
-            };
+// Improved media processing function with better error handling
+const processMediaMessage = async (deletedMessage) => {
+    let mediaType, mediaInfo;
+    
+    const mediaTypes = {
+        imageMessage: 'image',
+        videoMessage: 'video',
+        audioMessage: 'audio',
+        stickerMessage: 'sticker',
+        documentMessage: 'document'
+    };
 
-            for (const [key, type] of Object.entries(mediaTypes)) {
-                if (deletedMessage.message?.[key]) {
-                    mediaType = type;
-                    mediaInfo = deletedMessage.message[key];
-                    break;
-                }
-            }
+    for (const [key, type] of Object.entries(mediaTypes)) {
+        if (deletedMessage.message?.[key]) {
+            mediaType = type;
+            mediaInfo = deletedMessage.message[key];
+            break;
+        }
+    }
 
-            if (!mediaType || !mediaInfo) return null;
+    if (!mediaType || !mediaInfo) return null;
 
-            try {
-                const mediaStream = await downloadMediaMessage(deletedMessage, { logger });
-                
-                const extensions = {
-                    image: 'jpg',
-                    video: 'mp4',
-                    audio: mediaInfo.mimetype?.includes('mpeg') ? 'mp3' : 'ogg',
-                    sticker: 'webp',
-                    document: mediaInfo.fileName?.split('.').pop() || 'bin'
-                };
-                
-                const tempPath = path.join(__dirname, `temp_media_${Date.now()}.${extensions[mediaType]}`);
-                await pipeline(mediaStream, fs.createWriteStream(tempPath));
-                
-                return {
-                    path: tempPath,
-                    type: mediaType,
-                    caption: mediaInfo.caption || '',
-                    mimetype: mediaInfo.mimetype,
-                    fileName: mediaInfo.fileName || `${mediaType}_${Date.now()}.${extensions[mediaType]}`,
-                    ptt: mediaInfo.ptt
-                };
-            } catch (error) {
-                logger.error(`Media processing failed:`, error);
-                return null;
-            }
+    try {
+        const mediaStream = await downloadMediaMessage(deletedMessage, { logger });
+        
+        const extensions = {
+            image: 'jpg',
+            video: 'mp4',
+            audio: mediaInfo.mimetype?.includes('mpeg') ? 'mp3' : 'ogg',
+            sticker: 'webp',
+            document: mediaInfo.fileName?.split('.').pop() || 'bin'
         };
+        
+        const tempPath = path.join(__dirname, `temp_media_${Date.now()}.${extensions[mediaType]}`);
+        await pipeline(mediaStream, fs.createWriteStream(tempPath));
+        
+        return {
+            path: tempPath,
+            type: mediaType,
+            caption: mediaInfo.caption || '',
+            mimetype: mediaInfo.mimetype,
+            fileName: mediaInfo.fileName || `${mediaType}_${Date.now()}.${extensions[mediaType]}`,
+            ptt: mediaInfo.ptt
+        };
+    } catch (error) {
+        logger.error(`Media processing failed:`, error);
+        return null;
+    }
+};
 
-        // FIXED: Enhanced antidelete with WhatsApp links instead of Gmail
-        const handleDeletedMessage = async (deletedMsg, key, deleter) => {
-            const context = createContext(deleter, {
-                title: "Anti-Delete Protection",
-                body: "Deleted message detected",
-                thumbnail: "https://files.catbox.moe/sd49da.jpg"
-            });
+// Enhanced message forwarding function with better synchronization
+const handleDeletedMessage = async (deletedMsg, key, deleter) => {
+    const context = createContext(deleter, {
+        title: "Anti-Delete Protection",
+        body: "Deleted message detected",
+        thumbnail: "https://files.catbox.moe/sd49da.jpg"
+    });
 
-            // FIXED: Create WhatsApp links instead of Gmail links
-            const createWhatsAppLink = (jid) => {
-                if (jid.includes('@g.us')) {
-                    // Group link
-                    const groupId = jid.split('@')[0];
-                    return `https://wa.me/c/${groupId}`;
-                } else {
-                    // Private chat link  
-                    const phoneNumber = jid.split('@')[0].replace(/\D/g, '');
-                    return `https://wa.me/${phoneNumber}`;
-                }
-            };
+    const chatInfo = key.remoteJid.includes('@g.us') ? 
+        `Group: ${key.remoteJid}` : 
+        `DM with @${deleter.split('@')[0]}`;
 
-            const chatInfo = key.remoteJid.includes('@g.us') ? 
-                `Group: ${createWhatsAppLink(key.remoteJid)}` : 
-                `Chat: ${createWhatsAppLink(key.remoteJid)}`;
+    try {
+        // Handle both ANTIDELETE1 and ANTIDELETE2 in parallel for better performance
+        const promises = [];
+        
+        if (config.ANTIDELETE1 === "yes") {
+            promises.push((async () => {
+                try {
+                    const baseAlert = `♻️ *Anti-Delete Alert* ♻️\n\n` +
+                                    `🛑 Deleted by @${deleter.split('@')[0]}\n` +
+                                    `💬 In: ${chatInfo}`;
 
-            try {
-                const promises = [];
-                
-                if (config.ANTIDELETE1 === "yes") {
-                    promises.push((async () => {
-                        try {
-                            const baseAlert = `♻️ *Anti-Delete Alert* ♻️\n\n` +
-                                            `🛑 Deleted by @${deleter.split('@')[0]}\n` +
-                                            `💬 In: ${chatInfo}`;
-
-                            if (deletedMsg.message.conversation || deletedMsg.message.extendedTextMessage?.text) {
-                                const text = deletedMsg.message.conversation || 
-                                            deletedMsg.message.extendedTextMessage.text;
-                                
-                                await adams.sendMessage(key.remoteJid, {
-                                    text: `${baseAlert}\n\n📝 *Content:* ${text}`,
-                                    mentions: [deleter],
-                                    ...context
-                                });
-                            } else {
-                                const media = await processMediaMessage(deletedMsg);
-                                if (media) {
-                                    await adams.sendMessage(key.remoteJid, {
-                                        [media.type]: { url: media.path },
-                                        caption: media.caption ? 
-                                            `${baseAlert}\n\n📌 *Media Caption:* ${media.caption}` : 
-                                            baseAlert,
-                                        mentions: [deleter],
-                                        ...context,
-                                        ...(media.type === 'document' ? {
-                                            mimetype: media.mimetype,
-                                            fileName: media.fileName
-                                        } : {}),
-                                        ...(media.type === 'audio' ? {
-                                            ptt: media.ptt,
-                                            mimetype: media.mimetype
-                                        } : {})
-                                    });
-
-                                    setTimeout(() => {
-                                        if (fs.existsSync(media.path)) {
-                                            fs.unlink(media.path, (err) => {
-                                                if (err) logger.error('Cleanup failed:', err);
-                                            });
-                                        }
-                                    }, 30000);
-                                }
-                            }
-                        } catch (error) {
-                            logger.error('Failed to process ANTIDELETE1:', error);
-                        }
-                    })());
-                }
-
-                if (config.ANTIDELETE2 === "yes") {
-                    promises.push((async () => {
-                        try {
-                            // FIXED: Send to owner using the same method as above
-                            const ownerJid = standardizeJid(conf.OWNER_NUMBER);
-                            const ownerContext = {
+                    if (deletedMsg.message.conversation || deletedMsg.message.extendedTextMessage?.text) {
+                        const text = deletedMsg.message.conversation || 
+                                    deletedMsg.message.extendedTextMessage.text;
+                        
+                        await adams.sendMessage(key.remoteJid, {
+                            text: `${baseAlert}\n\n📝 *Content:* ${text}`,
+                            mentions: [deleter],
+                            ...context
+                        });
+                    } else {
+                        // Handle media in chat
+                        const media = await processMediaMessage(deletedMsg);
+                        if (media) {
+                            await adams.sendMessage(key.remoteJid, {
+                                [media.type]: { url: media.path },
+                                caption: media.caption ? 
+                                    `${baseAlert}\n\n📌 *Media Caption:* ${media.caption}` : 
+                                    baseAlert,
+                                mentions: [deleter],
                                 ...context,
-                                text: `👤 Sender: ${createWhatsAppLink(deleter)}\n💬 Chat: ${chatInfo}`
-                            };
-
-                            if (deletedMsg.message.conversation || deletedMsg.message.extendedTextMessage?.text) {
-                                const text = deletedMsg.message.conversation || 
-                                            deletedMsg.message.extendedTextMessage.text;
-                                
-                                await adams.sendMessage(ownerJid, { 
-                                    text: `📩 *Forwarded Deleted Message*\n\n${text}\n\n${ownerContext.text}`,
-                                    ...context
-                                });
-                            } else {
-                                const media = await processMediaMessage(deletedMsg);
-                                if (media) {
-                                    await adams.sendMessage(ownerJid, {
-                                        [media.type]: { url: media.path },
-                                        caption: media.caption ? 
-                                            `📩 *Forwarded Deleted Media*\n\n${media.caption}\n\n${ownerContext.text}` : 
-                                            `📩 *Forwarded Deleted Media*\n\n${ownerContext.text}`,
-                                        ...context,
-                                        ...(media.type === 'document' ? {
-                                            mimetype: media.mimetype,
-                                            fileName: media.fileName
-                                        } : {}),
-                                        ...(media.type === 'audio' ? {
-                                            ptt: media.ptt,
-                                            mimetype: media.mimetype
-                                        } : {})
-                                    });
-
-                                    setTimeout(() => {
-                                        if (fs.existsSync(media.path)) {
-                                            fs.unlink(media.path, (err) => {
-                                                if (err) logger.error('Cleanup failed:', err);
-                                            });
-                                        }
-                                    }, 30000);
-                                }
-                            }
-                        } catch (error) {
-                            logger.error('Failed to process ANTIDELETE2:', error);
-                            const ownerJid = standardizeJid(conf.OWNER_NUMBER);
-                            await adams.sendMessage(ownerJid, {
-                                text: `⚠️ Failed to forward deleted message from ${createWhatsAppLink(deleter)}\n\nError: ${error.message}`,
-                                ...context
+                                ...(media.type === 'document' ? {
+                                    mimetype: media.mimetype,
+                                    fileName: media.fileName
+                                } : {}),
+                                ...(media.type === 'audio' ? {
+                                    ptt: media.ptt,
+                                    mimetype: media.mimetype
+                                } : {})
                             });
+
+                            // Cleanup temp file
+                            setTimeout(() => {
+                                if (fs.existsSync(media.path)) {
+                                    fs.unlink(media.path, (err) => {
+                                        if (err) logger.error('Cleanup failed:', err);
+                                    });
+                                }
+                            }, 30000);
                         }
-                    })());
-                }
-
-                await Promise.all(promises);
-            } catch (error) {
-                logger.error('Anti-delete handling failed:', error);
-            }
-        };
-
-        adams.ev.on("messages.upsert", async ({ messages }) => {
-            try {
-                const ms = messages[0];
-                if (!ms?.message) return;
-
-                const { key } = ms;
-                if (!key?.remoteJid) return;
-
-                if (key.remoteJid === 'status@broadcast') return;
-
-                const sender = key.participant || key.remoteJid;
-                if (sender === botJid || sender === botOwnerJid || key.fromMe) return;
-
-                if (!ibraah.chats[key.remoteJid]) ibraah.chats[key.remoteJid] = [];
-                ibraah.chats[key.remoteJid].push({
-                    ...ms,
-                    timestamp: Date.now()
-                });
-
-                if (ibraah.chats[key.remoteJid].length > 50) {
-                    ibraah.chats[key.remoteJid] = ibraah.chats[key.remoteJid].slice(-50);
-                }
-
-                if (ms.message?.protocolMessage?.type === 0) {
-                    const deletedId = ms.message.protocolMessage.key.id;
-                    const deletedMsg = ibraah.chats[key.remoteJid].find(m => m.key.id === deletedId);
-                    if (!deletedMsg?.message) return;
-
-                    const deleter = ms.key.participant || ms.key.remoteJid;
-                    if (deleter === botJid || deleter === botOwnerJid) return;
-
-                    await handleDeletedMessage(deletedMsg, key, deleter);
-
-                    ibraah.chats[key.remoteJid] = ibraah.chats[key.remoteJid].filter(m => m.key.id !== deletedId);
-                }
-            } catch (error) {
-                logger.error('Anti-delete system error:', error);
-                if (await workerManager.handleAuthError(error)) return;
-            }
-        });
-
-        function getTimeBlock() {
-            const hour = new Date().getHours();
-            if (hour >= 5 && hour < 11) return "morning";
-            if (hour >= 11 && hour < 16) return "afternoon";
-            if (hour >= 16 && hour < 21) return "evening";
-            if (hour >= 21 || hour < 2) return "night";
-            return "latenight";
-        }
-
-        const quotes = {
-            morning: [ "☀️ ʀɪsᴇ ᴀɴᴅ sʜɪɴᴇ. ɢʀᴇᴀᴛ ᴛʜɪɴɢs ɴᴇᴠᴇʀ ᴄᴀᴍᴇ ғʀᴏᴍ ᴄᴏᴍғᴏʀᴛ ᴢᴏɴᴇs.", "🌅 ᴇᴀᴄʜ ᴍᴏʀɴɪɴɢ ᴡᴇ ᴀʀᴇ ʙᴏʀɴ ᴀɢᴀɪɴ. ᴡʜᴀᴛ ᴡᴇ ᴅᴏ ᴛᴏᴅᴀʏ ɪs ᴡʜᴀᴛ ᴍᴀᴛᴛᴇʀs ᴍᴏsᴛ.", "⚡ sᴛᴀʀᴛ ʏᴏᴜʀ ᴅᴀʏ ᴡɪᴛʜ ᴅᴇᴛᴇʀᴍɪɴᴀᴛɪᴏɴ, ᴇɴᴅ ɪᴛ ᴡɪᴛʜ sᴀᴛɪsғᴀᴄᴛɪᴏɴ.", "🌞 ᴛʜᴇ sᴜɴ ɪs ᴜᴘ, ᴛʜᴇ ᴅᴀʏ ɪs ʏᴏᴜʀs.", "📖 ᴇᴠᴇʀʏ ᴍᴏʀɴɪɴɢ ɪs ᴀ ɴᴇᴡ ᴘᴀɢᴇ ᴏғ ʏᴏᴜʀ sᴛᴏʀʏ. ᴍᴀᴋᴇ ɪᴛ ᴄᴏᴜɴᴛ." ], 
-            afternoon: [ "⏳ ᴋᴇᴇᴘ ɢᴏɪɴɢ. ʏᴏᴜ'ʀᴇ ʜᴀʟғᴡᴀʏ ᴛᴏ ɢʀᴇᴀᴛɴᴇss.", "🔄 sᴛᴀʏ ғᴏᴄᴜsᴇᴅ. ᴛʜᴇ ɢʀɪɴᴅ ᴅᴏᴇsɴ'ᴛ sᴛᴏᴘ ᴀᴛ ɴᴏᴏɴ.", "🏗️ sᴜᴄᴄᴇss ɪs ʙᴜɪʟᴛ ɪɴ ᴛʜᴇ ʜᴏᴜʀs ɴᴏʙᴏᴅʏ ᴛᴀʟᴋs ᴀʙᴏᴜᴛ.", "🔥 ᴘᴜsʜ ᴛʜʀᴏᴜɢʜ. ᴄʜᴀᴍᴘɪᴏɴs ᴀʀᴇ ᴍᴀᴅᴇ ɪɴ ᴛʜᴇ ᴍɪᴅᴅʟᴇ ᴏғ ᴛʜᴇ ᴅᴀʏ.", "⏰ ᴅᴏɴ'ᴛ ᴡᴀᴛᴄʜ ᴛʜᴇ ᴄʟᴏᴄᴋ, ᴅᴏ ᴡʜᴀᴛ ɪᴛ ᴅᴏᴇs—ᴋᴇᴇᴘ ɢᴏɪɴɢ." ],
-            evening: [ "🛌 ʀᴇsᴛ ɪs ᴘᴀʀᴛ ᴏғ ᴛʜᴇ ᴘʀᴏᴄᴇss. ʀᴇᴄʜᴀʀɢᴇ ᴡɪsᴇʟʏ.", "🌇 ᴇᴠᴇɴɪɴɢ ʙʀɪɴɢs sɪʟᴇɴᴄᴇ ᴛʜᴀᴛ sᴘᴇᴀᴋs ʟᴏᴜᴅᴇʀ ᴛʜᴀɴ ᴅᴀʏʟɪɢʜᴛ.", "✨ ʏᴏᴜ ᴅɪᴅ ᴡᴇʟʟ ᴛᴏᴅᴀʏ. ᴘʀᴇᴘᴀʀᴇ ғᴏʀ ᴀɴ ᴇᴠᴇɴ ʙᴇᴛᴛᴇʀ ᴛᴏᴍᴏʀʀᴏᴡ.", "🌙 ʟᴇᴛ ᴛʜᴇ ɴɪɢʜᴛ sᴇᴛᴛʟᴇ ɪɴ, ʙᴜᴛ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴅʀᴇᴀᴍs ᴡɪᴅᴇ ᴀᴡᴀᴋᴇ.", "🧠 ɢʀᴏᴡᴛʜ ᴅᴏᴇsɴ'ᴛ ᴇɴᴅ ᴀᴛ sᴜɴsᴇᴛ. ɪᴛ sʟᴇᴇᴘs ᴡɪᴛʜ ʏᴏᴜ." ],
-            night: [ "🌌 ᴛʜᴇ ɴɪɢʜᴛ ɪs sɪʟᴇɴᴛ, ʙᴜᴛ ʏᴏᴜʀ ᴅʀᴇᴀᴍs ᴀʀᴇ ʟᴏᴜᴅ.", "⭐ sᴛᴀʀs sʜɪɴᴇ ʙʀɪɢʜᴛᴇsᴛ ɪɴ ᴛʜᴇ ᴅᴀʀᴋ. sᴏ ᴄᴀɴ ʏᴏᴜ.", "🧘‍♂️ ʟᴇᴛ ɢᴏ ᴏғ ᴛʜᴇ ɴᴏɪsᴇ. ᴇᴍʙʀᴀᴄᴇ ᴛʜᴇ ᴘᴇᴀᴄᴇ.", "✅ ʏᴏᴜ ᴍᴀᴅᴇ ɪᴛ ᴛʜʀᴏᴜɢʜ ᴛʜᴇ ᴅᴀʏ. ɴᴏᴡ ᴅʀᴇᴀᴍ ʙɪɢ.", "🌠 ᴍɪᴅɴɪɢʜᴛ ᴛʜᴏᴜɢʜᴛs ᴀʀᴇ ᴛʜᴇ ʙʟᴜᴇᴘʀɪɴᴛ ᴏғ ᴛᴏᴍᴏʀʀᴏᴡ's ɢʀᴇᴀᴛɴᴇss." ],
-            latenight: [ "🕶️ ᴡʜɪʟᴇ ᴛʜᴇ ᴡᴏʀʟᴅ sʟᴇᴇᴘs, ᴛʜᴇ ᴍɪɴᴅs ᴏғ ʟᴇɢᴇɴᴅs ᴡᴀɴᴅᴇʀ.", "⏱️ ʟᴀᴛᴇ ɴɪɢʜᴛs ᴛᴇᴀᴄʜ ᴛʜᴇ ᴅᴇᴇᴘᴇsᴛ ʟᴇssᴏɴs.", "🔕 sɪʟᴇɴᴄᴇ ɪsɴ'ᴛ ᴇᴍᴘᴛʏ—ɪᴛ's ғᴜʟʟ ᴏғ ᴀɴsᴡᴇʀs.", "✨ ᴄʀᴇᴀᴛɪᴠɪᴛʏ ᴡʜɪsᴘᴇʀs ᴡʜᴇɴ ᴛʜᴇ ᴡᴏʀʟᴅ ɪs ǫᴜɪᴇᴛ.", "🌌 ʀᴇsᴛ ᴏʀ ʀᴇғʟᴇᴄᴛ, ʙᴜᴛ ɴᴇᴠᴇʀ ᴡᴀsᴛᴇ ᴛʜᴇ ɴɪɢʜᴛ." ] 
-        };
-
-        function getCurrentDateTime() {
-            return new Intl.DateTimeFormat("en", {
-                year: "numeric",
-                month: "long",
-                day: "2-digit"
-            }).format(new Date());
-        }
-
-        if (conf.AUTO_BIO === "yes") {
-            const updateBio = async () => {
-                try {
-                    const block = getTimeBlock();
-                    const timeDate = getCurrentDateTime();
-                    const timeQuotes = quotes[block];
-                    const quote = timeQuotes[Math.floor(Math.random() * timeQuotes.length)];
-
-                    const bioText = `ʙᴡᴍ xᴍᴅ ᴏɴʟɪɴᴇ\n➤ ${quote}\n📅 ${timeDate}`;
-
-                    await adams.updateProfileStatus(bioText);
+                    }
                 } catch (error) {
-                    console.error('Bio update failed:', error.message);
+                    logger.error('Failed to process ANTIDELETE1:', error);
                 }
-            };
-
-            setTimeout(updateBio, 10000);
-            setInterval(updateBio, 3600000);
+            })());
         }
 
-        if (conf.ANTICALL === 'yes') {
-            adams.ev.on("call", async (callData) => {
+        if (config.ANTIDELETE2 === "yes") {
+            promises.push((async () => {
                 try {
-                    await adams.rejectCall(callData[0].id, callData[0].from);
-                    console.log('Call blocked from:', callData[0].from.slice(0, 6) + '...');
+                    const ownerContext = {
+                        ...context,
+                        text: `👤 Sender: ${deleter}\n💬 Chat: ${chatInfo}`
+                    };
+
+                    if (deletedMsg.message.conversation || deletedMsg.message.extendedTextMessage?.text) {
+                        const text = deletedMsg.message.conversation || 
+                                    deletedMsg.message.extendedTextMessage.text;
+                        
+                        await adams.sendMessage(botOwnerJid, { 
+                            text: `📩 *Forwarded Deleted Message*\n\n${text}\n\n${ownerContext.text}`,
+                            ...context
+                        });
+                    } else {
+                        const media = await processMediaMessage(deletedMsg);
+                        if (media) {
+                            await adams.sendMessage(botOwnerJid, {
+                                [media.type]: { url: media.path },
+                                caption: media.caption ? 
+                                    `📩 *Forwarded Deleted Media*\n\n${media.caption}\n\n${ownerContext.text}` : 
+                                    `📩 *Forwarded Deleted Media*\n\n${ownerContext.text}`,
+                                ...context,
+                                ...(media.type === 'document' ? {
+                                    mimetype: media.mimetype,
+                                    fileName: media.fileName
+                                } : {}),
+                                ...(media.type === 'audio' ? {
+                                    ptt: media.ptt,
+                                    mimetype: media.mimetype
+                                } : {})
+                            });
+
+                            // Cleanup temp file
+                            setTimeout(() => {
+                                if (fs.existsSync(media.path)) {
+                                    fs.unlink(media.path, (err) => {
+                                        if (err) logger.error('Cleanup failed:', err);
+                                    });
+                                }
+                            }, 30000);
+                        }
+                    }
                 } catch (error) {
-                    console.error('Call block failed:', error.message);
+                    logger.error('Failed to process ANTIDELETE2:', error);
+                    await adams.sendMessage(botOwnerJid, {
+                        text: `⚠️ Failed to forward deleted message from ${deleter}\n\nError: ${error.message}`,
+                        ...context
+                    });
                 }
-            });
+            })());
         }
 
-        const updatePresence = async (jid) => {
-            try {
-                const etat = config.ETAT || 0;
-                
-                if (etat == 1) {
-                    await adams.sendPresenceUpdate("available", jid);
-                } else if (etat == 2) {
-                    await adams.sendPresenceUpdate("composing", jid);
-                } else if (etat == 3) {
-                    await adams.sendPresenceUpdate("recording", jid);
-                } else {
-                    await adams.sendPresenceUpdate("unavailable", jid);
-                }
-                
-                logger.debug(`Presence updated based on ETAT: ${etat}`);
-            } catch (e) {
-                logger.error('Presence update failed:', e.message);
-            }
-        };
+        await Promise.all(promises);
+    } catch (error) {
+        logger.error('Anti-delete handling failed:', error);
+    }
+};
 
-        adams.ev.on("connection.update", ({ connection }) => {
-            if (connection === "open") {
-                logger.info("Connection established - updating presence");
-                updatePresence("status@broadcast");
-            }
+adams.ev.on("messages.upsert", async ({ messages }) => {
+    try {
+        const ms = messages[0];
+        if (!ms?.message) return;
+
+        const { key } = ms;
+        if (!key?.remoteJid) return;
+
+        // Skip status updates (status@broadcast)
+        if (key.remoteJid === 'status@broadcast') return;
+
+        const sender = key.participant || key.remoteJid;
+        if (sender === botJid || sender === botOwnerJid || key.fromMe) return;
+
+        // Store message with timestamp
+        if (!ibraah.chats[key.remoteJid]) ibraah.chats[key.remoteJid] = [];
+        ibraah.chats[key.remoteJid].push({
+            ...ms,
+            timestamp: Date.now()
         });
 
-        adams.ev.on("messages.upsert", async ({ messages }) => {
-            if (messages && messages.length > 0) {
-                await updatePresence(messages[0].key.remoteJid);
+        // Cleanup old messages (keep only last 100 messages per chat)
+        if (ibraah.chats[key.remoteJid].length > 100) {
+            ibraah.chats[key.remoteJid].shift();
+        }
+
+        // Check for deletion
+        if (ms.message?.protocolMessage?.type === 0) {
+            const deletedId = ms.message.protocolMessage.key.id;
+            const deletedMsg = ibraah.chats[key.remoteJid].find(m => m.key.id === deletedId);
+            if (!deletedMsg?.message) return;
+
+            const deleter = ms.key.participant || ms.key.remoteJid;
+            if (deleter === botJid || deleter === botOwnerJid) return;
+
+            // Immediately handle the deleted message
+            await handleDeletedMessage(deletedMsg, key, deleter);
+
+            // Remove the deleted message from ibraah
+            ibraah.chats[key.remoteJid] = ibraah.chats[key.remoteJid].filter(m => m.key.id !== deletedId);
+        }
+    } catch (error) {
+        logger.error('Anti-delete system error:', error);
+    }
+});
+
+
+// Get current time of day
+function getTimeBlock() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return "morning";
+    if (hour >= 11 && hour < 16) return "afternoon";
+    if (hour >= 16 && hour < 21) return "evening";
+    if (hour >= 21 || hour < 2) return "night";
+    return "latenight";
+}
+
+// Quotes per time block
+const quotes = {
+  morning: [ "☀️ ʀɪsᴇ ᴀɴᴅ sʜɪɴᴇ. ɢʀᴇᴀᴛ ᴛʜɪɴɢs ɴᴇᴠᴇʀ ᴄᴀᴍᴇ ғʀᴏᴍ ᴄᴏᴍғᴏʀᴛ ᴢᴏɴᴇs.", "🌅 ᴇᴀᴄʜ ᴍᴏʀɴɪɴɢ ᴡᴇ ᴀʀᴇ ʙᴏʀɴ ᴀɢᴀɪɴ. ᴡʜᴀᴛ ᴡᴇ ᴅᴏ ᴛᴏᴅᴀʏ ɪs ᴡʜᴀᴛ ᴍᴀᴛᴛᴇʀs ᴍᴏsᴛ.", "⚡ sᴛᴀʀᴛ ʏᴏᴜʀ ᴅᴀʏ ᴡɪᴛʜ ᴅᴇᴛᴇʀᴍɪɴᴀᴛɪᴏɴ, ᴇɴᴅ ɪᴛ ᴡɪᴛʜ sᴀᴛɪsғᴀᴄᴛɪᴏɴ.", "🌞 ᴛʜᴇ sᴜɴ ɪs ᴜᴘ, ᴛʜᴇ ᴅᴀʏ ɪs ʏᴏᴜʀs.", "📖 ᴇᴠᴇʀʏ ᴍᴏʀɴɪɴɢ ɪs ᴀ ɴᴇᴡ ᴘᴀɢᴇ ᴏғ ʏᴏᴜʀ sᴛᴏʀʏ. ᴍᴀᴋᴇ ɪᴛ ᴄᴏᴜɴᴛ." ], 
+ afternoon: [ "⏳ ᴋᴇᴇᴘ ɢᴏɪɴɢ. ʏᴏᴜ'ʀᴇ ʜᴀʟғᴡᴀʏ ᴛᴏ ɢʀᴇᴀᴛɴᴇss.", "🔄 sᴛᴀʏ ғᴏᴄᴜsᴇᴅ. ᴛʜᴇ ɢʀɪɴᴅ ᴅᴏᴇsɴ’ᴛ sᴛᴏᴘ ᴀᴛ ɴᴏᴏɴ.", "🏗️ sᴜᴄᴄᴇss ɪs ʙᴜɪʟᴛ ɪɴ ᴛʜᴇ ʜᴏᴜʀs ɴᴏʙᴏᴅʏ ᴛᴀʟᴋs ᴀʙᴏᴜᴛ.", "🔥 ᴘᴜsʜ ᴛʜʀᴏᴜɢʜ. ᴄʜᴀᴍᴘɪᴏɴs ᴀʀᴇ ᴍᴀᴅᴇ ɪɴ ᴛʜᴇ ᴍɪᴅᴅʟᴇ ᴏғ ᴛʜᴇ ᴅᴀʏ.", "⏰ ᴅᴏɴ’ᴛ ᴡᴀᴛᴄʜ ᴛʜᴇ ᴄʟᴏᴄᴋ, ᴅᴏ ᴡʜᴀᴛ ɪᴛ ᴅᴏᴇs—ᴋᴇᴇᴘ ɢᴏɪɴɢ." ],
+ evening: [ "🛌 ʀᴇsᴛ ɪs ᴘᴀʀᴛ ᴏғ ᴛʜᴇ ᴘʀᴏᴄᴇss. ʀᴇᴄʜᴀʀɢᴇ ᴡɪsᴇʟʏ.", "🌇 ᴇᴠᴇɴɪɴɢ ʙʀɪɴɢꜱ ꜱɪʟᴇɴᴄᴇ ᴛʜᴀᴛ ꜱᴘᴇᴀᴋꜱ ʟᴏᴜᴅᴇʀ ᴛʜᴀɴ ᴅᴀʏʟɪɢʜᴛ.", "✨ ʏᴏᴜ ᴅɪᴅ ᴡᴇʟʟ ᴛᴏᴅᴀʏ. ᴘʀᴇᴘᴀʀᴇ ғᴏʀ ᴀɴ ᴇᴠᴇɴ ʙᴇᴛᴛᴇʀ ᴛᴏᴍᴏʀʀᴏᴡ.", "🌙 ʟᴇᴛ ᴛʜᴇ ɴɪɢʜᴛ sᴇᴛᴛʟᴇ ɪɴ, ʙᴜᴛ ᴋᴇᴇᴘ ʏᴏᴜʀ ᴅʀᴇᴀᴍs ᴡɪᴅᴇ ᴀᴡᴀᴋᴇ.", "🧠 ɢʀᴏᴡᴛʜ ᴅᴏᴇsɴ’ᴛ ᴇɴᴅ ᴀᴛ sᴜɴsᴇᴛ. ɪᴛ sʟᴇᴇᴘs ᴡɪᴛʜ ʏᴏᴜ." ],
+ night: [ "🌌 ᴛʜᴇ ɴɪɢʜᴛ ɪs sɪʟᴇɴᴛ, ʙᴜᴛ ʏᴏᴜʀ ᴅʀᴇᴀᴍs ᴀʀᴇ ʟᴏᴜᴅ.", "⭐ sᴛᴀʀs sʜɪɴᴇ ʙʀɪɢʜᴛᴇsᴛ ɪɴ ᴛʜᴇ ᴅᴀʀᴋ. sᴏ ᴄᴀɴ ʏᴏᴜ.", "🧘‍♂️ ʟᴇᴛ ɢᴏ ᴏғ ᴛʜᴇ ɴᴏɪsᴇ. ᴇᴍʙʀᴀᴄᴇ ᴛʜᴇ ᴘᴇᴀᴄᴇ.", "✅ ʏᴏᴜ ᴍᴀᴅᴇ ɪᴛ ᴛʜʀᴏᴜɢʜ ᴛʜᴇ ᴅᴀʏ. ɴᴏᴡ ᴅʀᴇᴀᴍ ʙɪɢ.", "🌠 ᴍɪᴅɴɪɢʜᴛ ᴛʜᴏᴜɢʜᴛs ᴀʀᴇ ᴛʜᴇ ʙʟᴜᴇᴘʀɪɴᴛ ᴏғ ᴛᴏᴍᴏʀʀᴏᴡ's ɢʀᴇᴀᴛɴᴇss." ],
+ latenight: [ "🕶️ ᴡʜɪʟᴇ ᴛʜᴇ ᴡᴏʀʟᴅ sʟᴇᴇᴘs, ᴛʜᴇ ᴍɪɴᴅs ᴏғ ʟᴇɢᴇɴᴅs ᴡᴀɴᴅᴇʀ.", "⏱️ ʟᴀᴛᴇ ɴɪɢʜᴛs ᴛᴇᴀᴄʜ ᴛʜᴇ ᴅᴇᴇᴘᴇsᴛ ʟᴇssᴏɴs.", "🔕 sɪʟᴇɴᴄᴇ ɪsɴ'ᴛ ᴇᴍᴘᴛʏ—ɪᴛ's ғᴜʟʟ ᴏғ ᴀɴsᴡᴇʀs.", "✨ ᴄʀᴇᴀᴛɪᴠɪᴛʏ ᴡʜɪsᴘᴇʀs ᴡʜᴇɴ ᴛʜᴇ ᴡᴏʀʟᴅ ɪs ǫᴜɪᴇᴛ.", "🌌 ʀᴇsᴛ ᴏʀ ʀᴇғʟᴇᴄᴛ, ʙᴜᴛ ɴᴇᴠᴇʀ ᴡᴀsᴛᴇ ᴛʜᴇ ɴɪɢʜᴛ." ] };
+
+// Enhanced global date formatter (date only)
+function getCurrentDateTime() {
+    return new Intl.DateTimeFormat("en", {
+        year: "numeric",
+        month: "long",
+        day: "2-digit"
+    }).format(new Date());
+}
+
+// Auto Bio Update System
+if (conf.AUTO_BIO === "yes") {
+    const updateBio = async () => {
+        try {
+            const block = getTimeBlock();
+            const timeDate = getCurrentDateTime();
+            const timeQuotes = quotes[block];
+            const quote = timeQuotes[Math.floor(Math.random() * timeQuotes.length)];
+
+            const bioText = `ʙᴡᴍ xᴍᴅ ᴏɴʟɪɴᴇ\n➤ ${quote}\n📅 ${timeDate}`;
+
+            await adams.updateProfileStatus(bioText);
+            //console.log('Bio updated at:', new Date().toLocaleString());
+        } catch (error) {
+            //console.error('Bio update failed:', error.message);
+        }
+    };
+
+    // Initial update after 10 seconds
+    setTimeout(updateBio, 10000);
+
+    // Update every 60 minutes
+    setInterval(updateBio, 3600000);
+}
+
+// Silent Anti-Call System (unchanged)
+if (conf.ANTICALL === 'yes') {
+    adams.ev.on("call", async (callData) => {
+        try {
+            await adams.rejectCall(callData[0].id, callData[0].from);
+            console.log('Call blocked from:', callData[0].from.slice(0, 6) + '...');
+        } catch (error) {
+            console.error('Call block failed:', error.message);
+        }
+    });
+}
+
+const updatePresence = async (jid) => {
+    try {
+        // Get presence state from config
+        const etat = conf.ETAT || 0; // Default to 0 (unavailable) if not set
+        
+        // Determine chat type
+        const isGroup = jid.endsWith('@g.us');
+        const isPrivate = jid.endsWith('@s.whatsapp.net');
+        const isStatus = jid === 'status@broadcast';
+        
+        // Skip status broadcasts for targeted presence
+        if (isStatus) {
+            if (etat == 1) {
+                await adams.sendPresenceUpdate("available", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
             }
-        });
-
-        const googleTTS = require("google-tts-api");
-        const { createContext2 } = require("./Ibrahim/helper2");
-
-        const availableApis = [
-            "https://bk9.fun/ai/google-thinking?q=",
-            "https://bk9.fun/ai/llama?q=",
-            "https://bk9.fun/ai/Aoyo?q="
-        ];
-
-        function getRandomApi() {
-            return availableApis[Math.floor(Math.random() * availableApis.length)];
+            return;
         }
-
-        function processForTTS(text) {
-            if (!text || typeof text !== 'string') return '';
-            return text.replace(/[\[\]\(\)\{\}]/g, ' ')
-                      .replace(/\s+/g, ' ')
-                      .substring(0, 190);
+        
+        // Set presence based on ETAT value with chat type filtering
+        if (etat == 1) {
+            // Available - works everywhere
+            await adams.sendPresenceUpdate("available", jid);
+        } else if (etat == 2) {
+            // Typing in private chats only
+            if (isPrivate) {
+                await adams.sendPresenceUpdate("composing", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else if (etat == 3) {
+            // Recording in private chats only
+            if (isPrivate) {
+                await adams.sendPresenceUpdate("recording", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else if (etat == 4) {
+            // Typing in groups only
+            if (isGroup) {
+                await adams.sendPresenceUpdate("composing", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else if (etat == 5) {
+            // Typing in all chats (private + groups)
+            if (isPrivate || isGroup) {
+                await adams.sendPresenceUpdate("composing", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else if (etat == 6) {
+            // Recording in groups only
+            if (isGroup) {
+                await adams.sendPresenceUpdate("recording", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else if (etat == 7) {
+            // Recording in all chats (private + groups)
+            if (isPrivate || isGroup) {
+                await adams.sendPresenceUpdate("recording", jid);
+            } else {
+                await adams.sendPresenceUpdate("unavailable", jid);
+            }
+        } else {
+            // Default: unavailable (etat = 0 or any other value)
+            await adams.sendPresenceUpdate("unavailable", jid);
         }
+        
+        logger.debug(`Presence updated based on ETAT: ${etat} for ${isGroup ? 'group' : isPrivate ? 'private' : 'other'} chat`);
+    } catch (e) {
+        logger.error('Presence update failed:', e.message);
+    }
+};
 
-        async function getAIResponse(query) {
-            const identityPatterns = [
-                /who\s*(made|created|built)\s*you/i,
-                /who\s*is\s*your\s*(creator|developer|maker|owner|father|parent)/i,
-                /what('?s| is)\s*your\s*name\??/i,
-                /who\s*are\s*you\??/i,
-                /who\s*a?you\??/i,
-                /who\s*au\??/i,
-                /what('?s| is)\s*ur\s*name\??/i,
-                /wat('?s| is)\s*(ur|your)\s*name\??/i,
-                /wats?\s*(ur|your)\s*name\??/i,
-                /wot('?s| is)\s*(ur|your)\s*name\??/i,
-                /hoo\s*r\s*u\??/i,
-                /who\s*u\??/i,
-                /whos\s*u\??/i,
-                /whos?\s*this\??/i,
-                /you\s*called\s*bwm/i,
-                /are\s*you\s*bwm/i,
-                /are\s*u\s*bwm/i,
-                /u\s*bwm\??/i,
-                /who\s*is\s*your\s*boss\??/i,
-                /who\s*ur\s*boss\??/i,
-                /who\s*your\s*boss\??/i,
-                /whoa\s*created\s*you\??/i,
-                /who\s*made\s*u\??/i,
-                /who\s*create\s*u\??/i,
-                /who\s*built\s*u\??/i,
-                /who\s*ur\s*owner\??/i,
-                /who\s*is\s*u\??/i,
-                /what\s*are\s*you\??/i,
-                /what\s*r\s*u\??/i,
-                /wat\s*r\s*u\??/i
-            ];
+// Update presence on connection
+adams.ev.on("connection.update", ({ connection }) => {
+    if (connection === "open") {
+        logger.info("Connection established - updating presence");
+        updatePresence("status@broadcast");
+    }
+});
 
-            const isIdentityQuestion = identityPatterns.some(pattern => 
-                typeof query === 'string' && pattern.test(query)
+// Update presence when receiving a message
+adams.ev.on("messages.upsert", async ({ messages }) => {
+    if (messages && messages.length > 0) {
+        const message = messages[0];
+        if (message.key && message.key.remoteJid) {
+            await updatePresence(message.key.remoteJid);
+        }
+    }
+});
+
+// ==================== AUTO READ SYSTEM ====================
+if (conf.AUTO_READ === "yes") {
+    logger.info("[Read] Auto-read enabled for chats");
+    
+    adams.ev.on("messages.upsert", async (m) => {
+        try {
+            const unread = m.messages.filter(
+                msg => !msg.key.fromMe && 
+                       msg.key.remoteJid !== "status@broadcast" &&
+                       msg.message // Ensure message exists
+            );
+            if (unread.length > 0) {
+                await adams.readMessages(unread.map(msg => msg.key));
+                logger.info(`[Read] Marked ${unread.length} messages as read`);
+            }
+        } catch (err) {
+            logger.error("[Read] Error:", err);
+        }
+    });
+}
+
+// ==================== STATUS REPLY SYSTEM ====================
+if (conf.AUTO_REPLY_STATUS === "yes") {
+    logger.info("[Status] Auto-reply enabled for status views");
+    
+    const lastNotified = new Map();
+    
+    adams.ev.on("messages.upsert", async (m) => {
+        try {
+            const statusUpdates = m.messages.filter(
+                msg => msg.key?.remoteJid === "status@broadcast" && 
+                      !msg.key.participant?.includes(adams.user.id.split(':')[0]) &&
+                      msg.message
             );
             
-            try {
-                const apiUrl = getRandomApi();
-                const response = await fetch(apiUrl + encodeURIComponent(query));
+            if (statusUpdates.length > 0) {
+                const statusMessage = statusUpdates[0];
+                const statusSender = statusMessage.key.participant;
                 
-                try {
-                    const data = await response.json();
-                    let aiResponse = data.BK9 || data.result || data.response || data.message || 
-                                   (data.data && (data.data.text || data.data.message)) || 
-                                   JSON.stringify(data);
+                if (!statusSender || statusSender.includes(adams.user.id.split(':')[0])) return;
+                
+                const now = Date.now();
+                const lastNotification = lastNotified.get(statusSender) || 0;
+                
+                if (now - lastNotification > 300000) { // 5 minutes cooldown
+                    lastNotified.set(statusSender, now);
                     
-                    if (typeof aiResponse === 'object') {
-                        aiResponse = JSON.stringify(aiResponse);
-                    }
-
-                    if (isIdentityQuestion) {
-                        aiResponse = 'I am BWM XMD, created by Ibrahim Adams! 🚀';
-                    }
-
-                    return aiResponse;
-                } catch (jsonError) {
-                    const textResponse = await response.text();
-                    return isIdentityQuestion 
-                        ? `I am BWM XMD, created by Ibrahim Adams! 🚀`
-                        : textResponse;
-                }
-            } catch (error) {
-                console.error("API Error:", error);
-                return isIdentityQuestion 
-                    ? "I'm BWM XMD, created by Ibrahim Adams! 🚀"
-                    : "Sorry, I couldn't get a response right now";
-            }
-        }
-
-        if (conf.CHATBOT === "yes" || conf.CHATBOT1 === "yes") {
-            adams.ev.on("messages.upsert", async ({ messages }) => {
-                try {
-                    const msg = messages[0];
-                    if (!msg?.message || msg.key.fromMe) return;
-
-                    const jid = msg.key.remoteJid;
-                    let text = '';
-                    
-                    if (msg.message.conversation) {
-                        text = msg.message.conversation;
-                    } else if (msg.message.extendedTextMessage?.text) {
-                        text = msg.message.extendedTextMessage.text;
-                    } else if (msg.message.imageMessage?.caption) {
-                        text = msg.message.imageMessage.caption;
-                    }
-
-                    if (!text || typeof text !== 'string') return;
-
-                    const aiResponse = await getAIResponse(text);
-
-                    if (conf.CHATBOT === "yes") {
-                        await adams.sendMessage(jid, { 
-                            text: String(aiResponse),
-                            ...createContext(jid, {
-                                title: "ʙᴡᴍ xᴍᴅ ᴄʜᴀᴛʙᴏᴛ ᴄᴏɴᴠᴇʀsᴀᴛɪᴏɴ",
-                                body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs"
-                            })
-                        }, { quoted: msg });
-                    }
-
-                    if (conf.CHATBOT1 === "yes") {
-                        const ttsText = processForTTS(String(aiResponse));
-                        if (ttsText) {
-                            const audioUrl = googleTTS.getAudioUrl(ttsText, {
-                                lang: "en",
-                                slow: false,
-                                host: "https://translate.google.com",
-                            });
-
-                            await adams.sendMessage(jid, {
-                                audio: { url: audioUrl },
-                                mimetype: "audio/mpeg",
-                                ptt: true,
-                                ...createContext2(jid, {
-                                    title: "ʙᴡᴍ xᴍᴅ ᴀᴜᴅɪᴏ_ᴄʜᴀᴛʙᴏᴛ",
-                                    body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs"
-                                })
-                            }, { quoted: msg });
-                        }
-                    }
-                } catch (error) {
-                    console.error("Message processing error:", error);
-                    if (await workerManager.handleAuthError(error)) return;
-                }
-            });
-        }
-
-        const isAnyLink = (message) => {
-            const linkPattern = /https?:\/\/[^\s]+/;
-            return linkPattern.test(message);
-        };
-
-        adams.ev.on('messages.upsert', async (msg) => {
-            try {
-                const { messages } = msg;
-                const message = messages[0];
-
-                if (!message.message) return;
-
-                const from = message.key.remoteJid;
-                const sender = message.key.participant || message.key.remoteJid;
-                const isGroup = from.endsWith('@g.us');
-
-                if (!isGroup) return;
-
-                const groupMetadata = await adams.groupMetadata(from);
-                const groupAdmins = groupMetadata.participants
-                    .filter((member) => member.admin)
-                    .map((admin) => standardizeJid(admin.id));
-
-                if (conf.GROUP_ANTILINK === 'yes') {
-                    const messageType = Object.keys(message.message)[0];
-                    const body =
-                        messageType === 'conversation'
-                            ? message.message.conversation
-                            : message.message[messageType]?.text || '';
-
-                    if (!body) return;
-
-                    // Check if sender is admin (with LID support)
-                    const senderJid = standardizeJid(sender);
-                    const senderRegularJid = extractRegularJidFromLid(senderJid);
-                    
-                    if (groupAdmins.includes(senderJid) || groupAdmins.includes(senderRegularJid)) return;
-
-                    if (isAnyLink(body)) {
-                        await adams.sendMessage(from, { delete: message.key });
-
-                        await adams.groupParticipantsUpdate(from, [sender], 'remove');
-
-                        await adams.sendMessage(
-                            from,
-                            {
-                                text: `⚠️Bwm xmd anti-link online!\n User @${sender.split('@')[0]} has been removed for sharing a link.`,
-                                mentions: [sender],
+                    await adams.sendMessage(statusSender, {
+                        text: `${conf.REPLY_STATUS_TEXT || "*ʏᴏᴜʀ sᴛᴀᴛᴜs ʜᴀᴠᴇ ʙᴇᴇɴ ᴠɪᴇᴡᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ ✅*"}\n\n📌 For more info visit: *bwmxmd.online*\n\n> ǫᴜᴀɴᴛᴜᴍ ᴠɪᴇᴡᴇʀ`,
+                        contextInfo: {
+                            quotedMessage: statusMessage.message,
+                            stanzaId: statusMessage.key.id,
+                            participant: statusSender,
+                            remoteJid: "status@broadcast",
+                            quotedParticipant: statusSender,
+                            forwardingScore: 999,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363285388090068@newsletter",
+                                newsletterName: "BWM-XMD",
+                                serverMessageId: Math.floor(100000 + Math.random() * 900000),
                             }
-                        );
-                    }
-                }
-            } catch (err) {
-                console.error('Error handling message:', err);
-                if (await workerManager.handleAuthError(err)) return;
-            }
-        });
-
-        class ListenerManager {
-            constructor() {
-                this.activeListeners = new Map();
-                this.targetListeners = new Set([
-                    'Welcome_Goodbye.js',
-                    'Status_update.js',
-                    'Autoreact_status.js'
-                ]);
-            }
-
-            async loadListeners(adams, store, commands) {
-                const listenerDir = path.join(__dirname, 'bwmxmd');
-                
-                this.cleanupListeners();
-                
-                const files = fs.readdirSync(listenerDir).filter(f => 
-                    this.targetListeners.has(f)
-                );
-                
-                for (const file of files) {
-                    try {
-                        const listenerPath = path.join(listenerDir, file);
-                        const { setup } = require(listenerPath);
-                        
-                        if (typeof setup === 'function') {
-                            const cleanup = await setup(adams, { 
-                                store,
-                                commands,
-                                logger,
-                                config: conf
-                            });
-                            
-                            this.activeListeners.set(file, cleanup);
                         }
-                    } catch (e) {
-                        console.error(`Error loading listener ${file}:`, e);
-                    }
+                    });
+                    
+                    logger.info(`[Status] Replied to status from ${statusSender}`);
                 }
             }
+        } catch (err) {
+            logger.error("[Status] Reply error:", err);
+        }
+    });
+}
 
-            cleanupListeners() {
-                for (const [name, cleanup] of this.activeListeners) {
-                    try {
-                        if (typeof cleanup === 'function') cleanup();
-                        console.log(`♻️ Cleaned up listener: ${name}`);
-                    } catch (e) {
-                        console.error(`Error cleaning up listener ${name}:`, e);
-                    }
-                }
-                this.activeListeners.clear();
+// ==================== WELCOME/GOODBYE SYSTEM ====================
+const welcomeImage = 'https://res.cloudinary.com/dptzpfgtm/image/upload/v1751888423/whatsapp_uploads/ohdoukrclkfg5ldhgvw8.jpg';
+const goodbyeImage = 'https://res.cloudinary.com/dptzpfgtm/image/upload/v1751888423/whatsapp_uploads/ohdoukrclkfg5ldhgvw8.jpg';
+
+// Cache for group names and profile photos
+const groupCache = new Map();
+const profileCache = new Map();
+setInterval(() => {
+    groupCache.clear();
+    profileCache.clear();
+}, 3600000); // Clear cache every hour
+
+// Helper function to get profile photo with fallback
+async function getProfilePhoto(jid, fallbackImage = welcomeImage) {
+    try {
+        if (profileCache.has(jid)) {
+            return profileCache.get(jid);
+        }
+        
+        const profileUrl = await adams.profilePictureUrl(jid, 'image');
+        profileCache.set(jid, profileUrl);
+        return profileUrl;
+    } catch (error) {
+        logger.debug(`No profile photo for ${jid}, using fallback`);
+        return fallbackImage;
+    }
+}
+
+// Helper function to get contact name from group metadata
+async function getContactName(jid, groupId) {
+    try {
+        // Get group metadata to find the participant
+        const metadata = await adams.groupMetadata(groupId);
+        const participant = metadata.participants.find(p => p.id === jid);
+        
+        if (participant && participant.notify) {
+            return participant.notify;
+        }
+        
+        // Fallback to just the number part
+        const number = jid.split('@')[0];
+        return number;
+    } catch (error) {
+        logger.error('Error getting contact name:', error);
+        // Ultimate fallback
+        return jid.split('@')[0];
+    }
+}
+
+adams.ev.on('group-participants.update', async (update) => {
+    try {
+        const { id, participants, action } = update;
+        
+        if (!botJid) {
+            logger.error('Bot JID not available');
+            return;
+        }
+
+        logger.info(`Group update: ${action} in ${id}, participants: ${participants.length}`);
+
+        // Get group metadata with caching
+        let groupName = groupCache.get(id);
+        let groupMetadata;
+        if (!groupName) {
+            try {
+                groupMetadata = await adams.groupMetadata(id);
+                groupName = groupMetadata.subject || "this group";
+                groupCache.set(id, groupName);
+                logger.info(`Group name: ${groupName}`);
+            } catch (error) {
+                logger.error(`Failed to get group metadata for ${id}:`, error);
+                groupName = "this group";
             }
         }
 
-        const listenerManager = new ListenerManager();
-
-        fs.watch(path.join(__dirname, 'bwmxmd'), (eventType, filename) => {
-            if (eventType === 'change' && listenerManager.targetListeners.has(filename)) {
-                console.log(`♻️ Reloading listener: ${filename}`);
-                delete require.cache[require.resolve(path.join(__dirname, 'bwmxmd', filename))];
-                listenerManager.loadListeners(adams, store, commandRegistry)
-                    .catch(console.error);
+        for (const participant of participants) {
+            if (participant === botJid) {
+                logger.info('Skipping bot participant');
+                continue;
             }
-        });
+
+            try {
+                logger.info(`Processing ${action} for ${participant}`);
+                
+                // Get user's actual name from group metadata
+                const userName = await getContactName(participant, id);
+                logger.info(`User name: ${userName}`);
+                
+                if (action === 'add' && conf.WELCOME_MESSAGE === 'yes') {
+                    logger.info('Sending welcome message...');
+                    
+                    // Get user profile photo
+                    const profilePhoto = await getProfilePhoto(participant, welcomeImage);
+                    
+                    const welcomeMessages = [
+                        `🌟 *W E L C O M E* 🌟\n\n🎉 Welcome to *${groupName}*\n\n✨ We're thrilled to have you join our amazing community! Feel free to introduce yourself and explore what we have to offer.\n\n🤝 Don't hesitate to jump into conversations and make new connections.\n\n📌 *For more info visit:* bwmxmd.online\n\n🚀 _Enjoy your stay with us!_`,
+                        
+                        `✨ *N E W  M E M B E R* ✨\n\n🏠 You've just joined *${groupName}*\n\n💫 We're excited to have you here with us! This is a place where great minds meet and amazing conversations happen.\n\n🌈 Feel free to ask questions, share ideas, and participate actively.\n\n📌 *For more info visit:* bwmxmd.online\n\n🎯 _Let's make great memories together!_`,
+                        
+                        `🎉 *W A R M  W E L C O M E* 🎉\n\n🏆 Welcome to *${groupName}*\n\n🌟 We hope you'll find this group engaging, helpful, and full of positive vibes! Your presence adds value to our community.\n\n💡 Looking forward to your amazing contributions!\n\n📌 *For more info visit:* bwmxmd.online\n\n✅ _Welcome aboard!_`,
+                        
+                        `🚀 *H E L L O  T H E R E* 🚀\n\n🎪 Welcome to *${groupName}*\n\n🎨 We're pleased to have you as part of our wonderful community. This is your space to learn, share, and grow with like-minded people.\n\n🌍 Feel free to explore and make yourself at home!\n\n📌 *For more info visit:* bwmxmd.online\n\n🎭 _Great to have you here!_`
+                    ];
+                    
+                    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+                    
+                    await adams.sendMessage(id, {
+                        image: { url: profilePhoto },
+                        caption: randomMessage,
+                        mentions: [participant],
+                        contextInfo: {
+                            forwardingScore: 999,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363285388090068@newsletter",
+                                newsletterName: "BWM-XMD",
+                                serverMessageId: Math.floor(100000 + Math.random() * 900000),
+                            },
+                        }
+                    });
+                    
+                    logger.info(`[Welcome] Sent welcome message to ${userName} in ${groupName}`);
+                }
+                else if (action === 'remove' && conf.GOODBYE_MESSAGE === 'yes') {
+                    logger.info('Sending goodbye message...');
+                    
+                    // Get user profile photo for goodbye
+                    const profilePhoto = await getProfilePhoto(participant, goodbyeImage);
+                    
+                    const farewellMessages = [
+                        `👋🏻 *F A R E W E L L* 👋🏻\n\n🌅 *${userName}* has left *${groupName}*\n\n🙏🏻 We appreciate the wonderful time you spent with us and all the great memories we shared together.\n\n✨ Thank you for being part of our community.\n\n🌟 Wishing you all the best on your journey ahead!\n\n📌 *For more info visit:* bwmxmd.online\n\n🚪 _You're always welcome back!_`,
+                        
+                        `🌅 *G O O D B Y E* 🌅\n\n👋🏻 Farewell to *${userName}* from *${groupName}*\n\n💫 Thank you for your amazing contributions to our community. Your presence made a difference and we'll miss having you around.\n\n🎭 The memories we created together will always be cherished.\n\n🌈 You're always welcome back anytime!\n\n📌 *For more info visit:* bwmxmd.online\n\n🎯 _Take care and stay awesome!_`,
+                        
+                        `✨ *S E E  Y O U  L A T E R* ✨\n\n🙋🏻‍♂️ *${userName}* is no longer with us in *${groupName}*\n\n🌟 We're grateful for all the wonderful memories and meaningful interactions we shared together.\n\n🤝 Your contributions to our community were truly valuable.\n\n💫 Take care and stay in touch!\n\n📌 *For more info visit:* bwmxmd.online\n\n🎊 _Until we meet again!_`,
+                        
+                        `🙏🏻 *T H A N K  Y O U* 🙏🏻\n\n👋🏻 We bid farewell to *${userName}* from *${groupName}*\n\n🏆 It's been an absolute pleasure having you as part of our amazing community. Your positive energy and contributions made this place better.\n\n🌍 Wishing you success and happiness in all your endeavors!\n\n🎨 Keep being awesome wherever you go!\n\n📌 *For more info visit:* bwmxmd.online\n\n🚀 _Best wishes always!_`
+                    ];
+                    
+                    const randomMessage = farewellMessages[Math.floor(Math.random() * farewellMessages.length)];
+                    
+                    await adams.sendMessage(id, {
+                        image: { url: profilePhoto },
+                        caption: randomMessage,
+                        mentions: [participant],
+                        contextInfo: {
+                            forwardingScore: 999,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363285388090068@newsletter",
+                                newsletterName: "BWM-XMD",
+                                serverMessageId: Math.floor(100000 + Math.random() * 900000),
+                            },
+                        }
+                    });
+                    
+                    logger.info(`[Goodbye] Sent goodbye message for ${userName} in ${groupName}`);
+                }
+                
+                // Small delay between processing participants
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+            } catch (participantError) {
+                logger.error(`Error processing ${action} for ${participant}:`, participantError);
+            }
+        }
+    } catch (err) {
+        logger.error('Welcome/Goodbye system error:', err);
+    }
+});
+        
+// ==================== STATUS READ SYSTEM ====================
+if (conf.AUTO_READ_STATUS === "yes") {
+    logger.info("[Status] Auto-read enabled for status updates");
+    
+    adams.ev.on("messages.upsert", async (m) => {
+        try {
+            const statusUpdates = m.messages.filter(
+                msg => msg.key?.remoteJid === "status@broadcast" && 
+                      !msg.key.participant?.includes(adams.user.id.split(':')[0])
+            );
+            if (statusUpdates.length > 0) {
+                await adams.readMessages(statusUpdates.map(msg => msg.key));
+            }
+        } catch (err) {
+            logger.error("[Status] Read error:", err);
+        }
+    });
+}
+
+
+// ==================== AUTO REACT TO MESSAGES ====================
+if (conf.AUTO_REACT === "yes") {
+    logger.info("[React] Auto-react to messages enabled");
+    
+    const emojiMap = {
+        "hello": ["👋", "🙂", "😊"],
+        "hi": ["👋", "😄", "🤗"],
+        "good morning": ["🌞", "☀️", "🌻"],
+        "good night": ["🌙", "🌠", "💤"],
+        "thanks": ["🙏", "❤️", "😊"],
+        "welcome": ["😊", "🤗", "👌"],
+        "congrats": ["🎉", "👏", "🥳"],
+        "sorry": ["😔", "🙏", "🥺"]
+    };
+                   
+    const fallbackEmojis = [
+        "👍", "👌", "💯", "✨", "🌟", "🏆", "🎯", "✅",
+        "🙏", "❤️", "💖", "💝", "💐", "🌹",
+        "😊", "🙂", "👋", "🤝", "🫱🏻‍🫲🏽",
+        "🎉", "🎊", "🥂", "🍾", "🎈", "🎁",
+        "🌞", "☀️", "🌙", "⭐", "🌈", "☕",
+        "🌍", "✈️", "🗺️", "🌻", "🌸", "🌊",
+        "📚", "🎨", "📝", "🔍", "💡", "⚙️",
+        "📌", "📍", "🕰️", "⏳", "📊", "📈"
+    ];
+
+    let lastReactTime = 0;
+
+    adams.ev.on("messages.upsert", async (m) => {
+        try {
+            const { messages } = m;
+            const now = Date.now();
+
+            for (const message of messages) {
+                if (!message.key || message.key.fromMe || 
+                    message.key.remoteJid === "status@broadcast" ||
+                    now - lastReactTime < 2000) continue;
+
+                const msgText = (
+                    message.message?.conversation || 
+                    message.message?.extendedTextMessage?.text || ""
+                ).toLowerCase();
+
+                let emoji;
+                for (const [keyword, emojis] of Object.entries(emojiMap)) {
+                    if (msgText.includes(keyword)) {
+                        emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                        break;
+                    }
+                }
+
+                emoji = emoji || fallbackEmojis[Math.floor(Math.random() * fallbackEmojis.length)];
+
+                await adams.sendMessage(message.key.remoteJid, {
+                    react: {
+                        text: emoji,
+                        key: message.key
+                    }
+                });
+
+                lastReactTime = now;
+                logger.info(`[React] Sent ${emoji} to ${message.key.remoteJid}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        } catch (err) {
+            logger.error("[React] Error:", err);
+        }
+    });
+}
+
+// ==================== AUTO REACT TO STATUS ====================
+if (conf.AUTO_REACT_STATUS === "yes") {
+    logger.info("[Status] Auto-react to status enabled");
+    
+    let lastReactionTime = 0;
+
+    adams.ev.on("messages.upsert", async (m) => {
+        const { messages } = m;
+        
+        const reactionEmojis = (conf.STATUS_REACT_EMOJIS || "🚀,🌎,♻️").split(",").map(e => e.trim());
+
+        for (const message of messages) {
+            if (message.key && message.key.remoteJid === "status@broadcast") {
+                const now = Date.now();
+                if (now - lastReactionTime < 5000) continue; // 5-second cooldown
+
+                const botJid = adams.user?.id ? `${adams.user.id.split(':')[0]}@s.whatsapp.net` : null;
+                if (!botJid) continue;
+
+                try {
+                    const randomEmoji = reactionEmojis[Math.floor(Math.random() * reactionEmojis.length)];
+
+                    await adams.sendMessage(message.key.remoteJid, {
+                        react: {
+                            key: message.key,
+                            text: randomEmoji,
+                        },
+                    }, {
+                        statusJidList: [message.key.participant, botJid],
+                    });
+
+                    lastReactionTime = Date.now();
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    logger.info(`[Status] Reacted ${randomEmoji} to status from ${message.key.participant}`);
+                } catch (error) {
+                    logger.error(`Status reaction failed: ${error.message}`);
+                }
+            }
+        }
+    });
+}
+
+
+const googleTTS = require("google-tts-api");
+const { createContext2 } = require("./Ibrahim/helper2");
+
+const availableApis = [
+   // "https://bk9.fun/ai/jeeves-chat2?q=",
+    "https://bk9.fun/ai/google-thinking?q=",
+    "https://bk9.fun/ai/llama?q="
+];
+
+function getRandomApi() {
+    return availableApis[Math.floor(Math.random() * availableApis.length)];
+}
+
+function processForTTS(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text.replace(/[\[\]\(\)\{\}]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .substring(0, 190);
+}
+
+async function getAIResponse(query) {
+    const identityPatterns = [
+    /who\s*(made|created|built)\s*you/i,
+    /who\s*is\s*your\s*(creator|developer|maker|owner|father|parent)/i,
+    /what('?s| is)\s*your\s*name\??/i,
+    /who\s*are\s*you\??/i,
+    /who\s*a?you\??/i,
+    /who\s*au\??/i,
+    /what('?s| is)\s*ur\s*name\??/i,
+    /wat('?s| is)\s*(ur|your)\s*name\??/i,
+    /wats?\s*(ur|your)\s*name\??/i,
+    /wot('?s| is)\s*(ur|your)\s*name\??/i,
+    /hoo\s*r\s*u\??/i,
+    /who\s*u\??/i,
+    /whos\s*u\??/i,
+    /whos?\s*this\??/i,
+    /you\s*called\s*bwm/i,
+    /are\s*you\s*bwm/i,
+    /are\s*u\s*bwm/i,
+    /u\s*bwm\??/i,
+    /who\s*is\s*your\s*boss\??/i,
+    /who\s*ur\s*boss\??/i,
+    /who\s*your\s*boss\??/i,
+    /whoa\s*created\s*you\??/i,
+    /who\s*made\s*u\??/i,
+    /who\s*create\s*u\??/i,
+    /who\s*built\s*u\??/i,
+    /who\s*ur\s*owner\??/i,
+    /who\s*is\s*u\??/i,
+    /what\s*are\s*you\??/i,
+    /what\s*r\s*u\??/i,
+    /wat\s*r\s*u\??/i
+];
+
+    const isIdentityQuestion = identityPatterns.some(pattern => 
+        typeof query === 'string' && pattern.test(query)
+    );
+    
+    try {
+        const apiUrl = getRandomApi();
+        const response = await fetch(apiUrl + encodeURIComponent(query));
+        
+        // First try to parse as JSON
+        try {
+            const data = await response.json();
+            // Handle different API response formats
+            let aiResponse = data.BK9 || data.result || data.response || data.message || 
+                           (data.data && (data.data.text || data.data.message)) || 
+                           JSON.stringify(data);
+            
+            // If we got an object, stringify it
+            if (typeof aiResponse === 'object') {
+                aiResponse = JSON.stringify(aiResponse);
+            }
+
+            if (isIdentityQuestion) {
+                aiResponse = 'I am BWM XMD, created by Ibrahim Adams! 🚀';
+            }
+            
+            return aiResponse;
+        } catch (jsonError) {
+            // If JSON parse fails, try to get as text
+            const textResponse = await response.text();
+            return isIdentityQuestion 
+                ? `I am BWM XMD, created by Ibrahim Adams! 🚀`
+                : textResponse;
+        }
+    } catch (error) {
+        console.error("API Error:", error);
+        return isIdentityQuestion 
+            ? "I'm BWM XMD, created by Ibrahim Adams! 🚀"
+            : "Sorry, I couldn't get a response right now";
+    }
+}
+
+if (conf.CHATBOT === "yes" || conf.CHATBOT1 === "yes") {
+    adams.ev.on("messages.upsert", async ({ messages }) => {
+        try {
+            const msg = messages[0];
+            if (!msg?.message || msg.key.fromMe) return;
+
+            const jid = msg.key.remoteJid;
+            let text = '';
+            
+            if (msg.message.conversation) {
+                text = msg.message.conversation;
+            } else if (msg.message.extendedTextMessage?.text) {
+                text = msg.message.extendedTextMessage.text;
+            } else if (msg.message.imageMessage?.caption) {
+                text = msg.message.imageMessage.caption;
+            }
+
+            if (!text || typeof text !== 'string') return;
+
+            const aiResponse = await getAIResponse(text);
+
+            // Text response
+            if (conf.CHATBOT === "yes") {
+                await adams.sendMessage(jid, { 
+                    text: String(aiResponse),
+                    ...createContext(jid, {
+                        title: "ʙᴡᴍ xᴍᴅ ᴄʜᴀᴛʙᴏᴛ ᴄᴏɴᴠᴇʀsᴀᴛɪᴏɴ",
+                        body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs"
+                    })
+                }, { quoted: msg });
+            }
+
+            // Voice response
+            if (conf.CHATBOT1 === "yes") {
+                const ttsText = processForTTS(String(aiResponse));
+                if (ttsText) {
+                    const audioUrl = googleTTS.getAudioUrl(ttsText, {
+                        lang: "en",
+                        slow: false,
+                        host: "https://translate.google.com",
+                    });
+
+                    await adams.sendMessage(jid, {
+                        audio: { url: audioUrl },
+                        mimetype: "audio/mpeg",
+                        ptt: true,
+                        ...createContext2(jid, {
+                            title: "ʙᴡᴍ xᴍᴅ ᴀᴜᴅɪᴏ_ᴄʜᴀᴛʙᴏᴛ",
+                            body: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs"
+                        })
+                    }, { quoted: msg });
+                }
+            }
+        } catch (error) {
+            console.error("Message processing error:", error);
+        }
+    });
+}
+
+ const isAnyLink = (message) => {
+    // Regex pattern to detect any link
+    const linkPattern = /https?:\/\/[^\s]+/;
+    return linkPattern.test(message);
+};
+
+adams.ev.on('messages.upsert', async (msg) => {
+    try {
+        const { messages } = msg;
+        const message = messages[0];
+
+        if (!message.message) return; // Skip empty messages
+
+        const from = message.key.remoteJid; // Chat ID
+        const sender = message.key.participant || message.key.remoteJid; // Sender ID
+        const isGroup = from.endsWith('@g.us'); // Check if the message is from a group
+
+        if (!isGroup) return; // Skip non-group messages
+
+        const groupMetadata = await adams.groupMetadata(from); // Fetch group metadata
+        const groupAdmins = groupMetadata.participants
+            .filter((member) => member.admin)
+            .map((admin) => admin.id);
+
+        // Check if ANTI-LINK is enabled for the group
+        if (conf.GROUP_ANTILINK === 'yes') {
+            const messageType = Object.keys(message.message)[0];
+            const body =
+                messageType === 'conversation'
+                    ? message.message.conversation
+                    : message.message[messageType]?.text || '';
+
+            if (!body) return; // Skip if there's no text
+
+            // Skip messages from admins
+            if (groupAdmins.includes(sender)) return;
+
+            // Check for any link
+            if (isAnyLink(body)) {
+                // Delete the message
+                await adams.sendMessage(from, { delete: message.key });
+
+                // Remove the sender from the group
+                await adams.groupParticipantsUpdate(from, [sender], 'remove');
+
+                // Send a notification to the group
+                await adams.sendMessage(
+                    from,
+                    {
+                        text: `⚠️Bwm xmd anti-link online!\n User @${sender.split('@')[0]} has been removed for sharing a link.`,
+                        mentions: [sender],
+                    }
+                );
+            }
+        }
+    } catch (err) {
+        console.error('Error handling message:', err);
+    }
+});
+
 
         //============================================================================================================
 
@@ -1419,13 +1806,33 @@ async function main() {
 
                     // DEFINE RESTRICTED COMMANDS
                     const restrictedCommands = [
-    'getallvar', 'setvar', 'settings', 'update', 'reset', 'restart',
-    'anticall', 'autoreact', 'autoreadstatus', 'privatemode', 'autorecord', 'autotyping', 'alwaysonline',
-    'join', 'jid', 'block',
-    'link', 'invite', 'left', 'kick', 'kickall', 'opengroup', 'closegroup', 'hidetag', 
-    'promote', 'demote', 'groupn', 'groupd', 'senttoall', 'opentime', 'closetime', 
-    'canceltimer', 'lockdown', 'resetlink', 'ephemeral', 'del', 'reject', 'approve', 'setgpp',
-    'add', 'mute', 'unmute', 'setname', 'setdesc', 'revoke'
+    // Core bot controls
+    'getallvar', 'setvar', 'settings', 'update', 'reset', 'restart', 'backup', 'status',
+    
+    // Presence/status features
+    'autotyping', 'alwaysonline', 'autorecording', 'autobio', 'alwaysonline',
+    
+    // Reaction/read features
+    'autoreact', 'autoreactstatus', 'autoread', 'autoreadstatus', 'autodownloadstatus',
+    
+    // Chat features
+    'chatboton', 'audiochatbot', 'autoreply', 'startmsg',
+    
+    // Privacy/security
+    'privatemode', 'anticall', 'antilink', 'antidelete', 'antideleterecover',
+    
+    // Group management
+    'join', 'jid', 'block', 'link', 'invite', 'left', 'kick', 'kickall', 
+    'opengroup', 'closegroup', 'hidetag', 'promote', 'demote', 'groupn', 
+    'groupd', 'senttoall', 'opentime', 'closetime', 'canceltimer', 
+    'lockdown', 'resetlink', 'ephemeral', 'del', 'reject', 'approve', 
+    'setgpp', 'add', 'mute', 'unmute', 'setname', 'setdesc', 'revoke',
+    
+    // Welcome/goodbye
+    'welcome', 'goodbye',
+    
+    // Variable controls
+    'getvar', 'listvar'
 ];
 
                     const isRestrictedCommand = restrictedCommands.includes(com);
@@ -1575,32 +1982,31 @@ async function main() {
         });
 
         // Enhanced connection update handler with worker manager integration
-        adams.ev.on("connection.update", async (update) => {
-            const { connection, lastDisconnect, qr } = update;
+        // Enhanced connection update handler with worker manager integration
+adams.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-            if (qr) {
-                console.log("QR Code received, scan it!");
-            }
+    if (qr) {
+        console.log("QR Code received, scan it!");
+    }
 
-            if (connection === "connecting") {
-                console.log("🪩 Bot scanning 🪩");
-                reconnectAttempts = 0;
-            }
+    if (connection === "connecting") {
+        console.log("🪩 Bot scanning 🪩");
+        reconnectAttempts = 0;
+    }
 
-            if (connection === "open") {
-                console.log("🌎 BWM XMD ONLINE 🌎");
-                reconnectAttempts = 0;
+    if (connection === "open") {
+        console.log("🌎 BWM XMD ONLINE 🌎");
+        reconnectAttempts = 0;
+        
+        setTimeout(async () => {
+            try {
+                console.log('🚀 Enjoy quantum speed 🌎');
                 
-                setTimeout(async () => {
-                    try {
-                        listenerManager.loadListeners(adams, store, evt.cm)
-                            .then(() => console.log('🚀 Enjoy quantum speed 🌎'))
-                            .catch(console.error);
-                            
-                        if (conf.DP === "yes") {
-                            const md = conf.MODE === "yes" ? "public" : "private";
-                            const connectionMsg = `┌─❖
-│ ${conf.PREFIX} ONLINE 
+                if (conf.DP === "yes") {
+                    const md = conf.MODE === "yes" ? "public" : "private";
+                    const connectionMsg = `┌─❖
+│ 𝐁𝐖𝐌 𝐗𝐌𝐃 𝐎𝐍𝐋𝐈𝐍𝐄
 └┬❖  
 ┌┤ ǫᴜᴀɴᴛᴜᴍ ᴠᴇʀsɪᴏɴ
 │└────────┈ ⳹  
@@ -1611,28 +2017,30 @@ async function main() {
 │ *ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ, ᴠɪsɪᴛ*
 │ https://bwmxmd.online
 │ App Name: ${herokuAppName}
-└───────────────┈ ⳹`;
+└───────────────┈ ⳹  
+│  ©ɪʙʀᴀʜɪᴍ ᴀᴅᴀᴍs
+└─────────────────┈ ⳹`;
 
-                            await adams.sendMessage(
-                                adams.user.id,
-                                {
-                                    text: connectionMsg,
-                                    ...createContext("BWM XMD", {
-                                        title: "SYSTEM ONLINE",
-                                        body: "Auto-Restart Enabled"
-                                    })
-                                },
-                                {
-                                    disappearingMessagesInChat: true,
-                                    ephemeralExpiration: 600,
-                                }
-                            );
+                    await adams.sendMessage(
+                        adams.user.id,
+                        {
+                            text: connectionMsg,
+                            ...createContext("BWM XMD", {
+                                title: "SYSTEM ONLINE",
+                                body: "Auto-Restart Enabled"
+                            })
+                        },
+                        {
+                            disappearingMessagesInChat: true,
+                            ephemeralExpiration: 600,
                         }
-                    } catch (err) {
-                        console.error("Post-connection setup error:", err);
-                    }
-                }, 5000);
+                    );
+                }
+            } catch (err) {
+                console.error("Post-connection setup error:", err);
             }
+        }, 5000);
+    }
 
             if (connection === "close") {
                 const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
