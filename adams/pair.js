@@ -145,8 +145,6 @@ adams({ nomCom: "scan", reaction: "🔍", categorie: "pair" }, async (dest, zk, 
 
    👉 Copy the long session and send it to me.  
 
-*💻 Powered by bwm xmd* 
-
 ╭────────────━⊷
 🌐 ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ, ᴠɪsɪᴛ
 > bwmxmd.online
