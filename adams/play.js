@@ -6,21 +6,25 @@ const ytSearch = require("yt-search");
 const apiKey = 'gifted_api_6kuv56877d';
 
 const audioApis = [
+    // David Cyril APIs first for faster MP3
     `https://apis.davidcyriltech.my.id/download/ytmp3?url=`,
     `https://apis.davidcyriltech.my.id/youtube/mp3?url=`,
+    // GiftedTech APIs
+    `https://api.giftedtech.web.id/api/download/ytmp3?apikey=${apiKey}&url=`,
+    `https://api.giftedtech.web.id/api/download/ytmusic?apikey=${apiKey}&url=`,
+    // Other APIs
     `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
     `https://api.giftedtech.web.id/api/download/ytdl?apikey=${apiKey}&url=`,
-    `https://api.giftedtech.web.id/api/download/ytdlv2?apikey=${apiKey}&url=`,
     `https://api.giftedtech.web.id/api/download/ytaudio?apikey=${apiKey}&format=128kbps&url=`,
     `https://api.giftedtech.web.id/api/download/yta?apikey=${apiKey}&url=`
 ];
 
 const videoApis = [
-  `https://api.giftedtech.web.id/api/download/ytmp4?apikey=${apiKey}&url=`,
-  `https://apis.davidcyriltech.web.id/download/ytmp4?url=`,
-  `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`,
-  `https://apis.davidcyriltech.web.id/youtube/mp4?url=`,
-  `https://api.giftedtech.web.id/api/download/ytvideo?apikey=${apiKey}&url=`
+    `https://api.giftedtech.web.id/api/download/ytmp4?apikey=${apiKey}&url=`,
+    `https://apis.davidcyriltech.my.id/download/ytmp4?url=`,
+    `https://api.giftedtech.web.id/api/download/ytv?apikey=${apiKey}&url=`,
+    `https://apis.davidcyriltech.my.id/youtube/mp4?url=`,
+    `https://api.giftedtech.web.id/api/download/ytvideo?apikey=${apiKey}&url=`
 ];
 
 // Store active download sessions
